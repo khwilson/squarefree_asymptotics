@@ -4,6 +4,7 @@ import algebra.order.floor
 import data.list.intervals
 import tactic
 import measure_theory.integral.interval_integral
+import general
 
 noncomputable theory
 open nat finset function filter
@@ -33,260 +34,7 @@ The file has the following outline:
   * Finishing the proof
 -/
 
-----------------------------------------
---          GENERAL LEMMAS
-----------------------------------------
-
-lemma two_add {n : ℕ} (hn : 2 ≤ n) : ∃ n', n = 2 + n' :=
-begin
-  have : n - 2 + 2 = n, apply nat.sub_add_cancel hn,
-  use n - 2,
-  ring_nf,
-  exact this.symm,
-end
-
-lemma two_le_nat_iff_not_zero_one {m : ℕ} : 2 ≤ m ↔ m ≠ 0 ∧ m ≠ 1 :=
-begin
-  split,
-  intros h,
-  split,
-  linarith,
-  linarith,
-  rintros ⟨h, hh⟩,
-  induction m,
-  simp [h],
-  exact h rfl,
-  induction m_n,
-  exfalso,
-  exact hh rfl,
-
-  calc m_n_n.succ.succ = m_n_n.succ + 1 : rfl
-    ... = m_n_n + 1 + 1 : rfl
-    ... = m_n_n + 2 : by ring
-    ... ≥ 0 + 2 : le_add_self
-    ... = 2 : by ring,
-end
-
-lemma two_le_prime {p : ℕ}: nat.prime p → 2 ≤ p :=
-begin
-  intros hp,
-  by_cases p_zero : p = 0,
-  exfalso,
-  rw p_zero at hp,
-  exact not_prime_zero hp,
-  by_cases p_one : p = 1,
-  exfalso,
-  rw p_one at hp,
-  exact not_prime_one hp,
-  exact two_le_nat_iff_not_zero_one.mpr ⟨ p_zero, p_one ⟩,
-end
-
-lemma pow_not_squarefree : ∀ (p i : ℕ), 2 ≤ p → 2 ≤ i → ¬squarefree (p^i) :=
-begin
-  intros p i hp hi,
-  have : p * p ∣ p^i, {
-    obtain ⟨i', hi'⟩ : ∃ i', i = 2 + i', exact two_add hi,
-    rw hi',
-    rw pow_add,
-    rw pow_two,
-    exact dvd_mul_right (p * p) (p ^ i'),
-  },
-  by_contradiction H,
-  unfold squarefree at H,
-  specialize H p this,
-  simp at H,
-  linarith,
-end
-
-lemma lt_of_div {a b : ℕ} (hb : 2 ≤ b) : a ≠ 0 → a / b < a :=
-begin
-  contrapose!,
-  intros h,
-  exact nat.eq_zero_of_le_div hb h,
-end
-
-lemma has_coprime_part_strong : ∀ (M m p : ℕ), m ≤ M → 1 ≤ m → nat.prime p → ∃ (m' i : ℕ), m = (p^i) * m' ∧ p.coprime m' :=
-begin
-  intros M,
-  induction M with M hM,
-  simp,
-  intros m p hm hm',
-  linarith,
-  intros m p hm_ind one_le_m hp,
-  have m_ne_zero : m ≠ 0, linarith,
-  have zero_lt_m : 0 < m, linarith,
-  by_cases p_dvd_m : p ∣ m,
-  {
-    have p_le_m : p ≤ m, exact nat.le_of_dvd zero_lt_m p_dvd_m,
-    have mdp_ne_zero : m / p ≠ 0, {
-      by_contradiction H,
-      have : p * (m / p) = 0,
-        calc p * (m / p) = p * 0 : by simp [H]
-          ... = 0 : by simp,
-      rw @nat.mul_div_cancel_left' p m p_dvd_m at this,
-      exact m_ne_zero this,
-    },
-    have : 2 ≤ p, exact two_le_prime hp,
-    have : m / p < M.succ,
-      calc m / p < m : lt_of_div this m_ne_zero
-        ... ≤ M.succ : hm_ind,
-    have aaa : m / p ≤ M, exact lt_succ_iff.mp this,
-    have bbb : 1 ≤ m / p, exact zero_lt_iff.mpr mdp_ne_zero,
-    rcases hM (m / p) p aaa bbb hp with ⟨m', i', hm', hmp'⟩,
-    use m',
-    use i' + 1,
-    split,
-    conv {
-      to_rhs,
-      rw pow_add,
-      congr,
-      rw mul_comm,
-    },
-    conv {
-      to_rhs,
-      rw mul_assoc,
-    },
-    rw ← hm',
-    simp,
-    rw @nat.mul_div_cancel_left' p m p_dvd_m,
-    exact hmp',
-  },
-  {
-    use [m, 0],
-    simp,
-    cases coprime_or_dvd_of_prime hp m,
-    exact h,
-    exfalso,
-    exact p_dvd_m h,
-  },
-end
-
-lemma has_coprime_part : ∀ (m p : ℕ), 1 ≤ m → nat.prime p → ∃ (m' i : ℕ), m = (p^i) * m' ∧ p.coprime m' :=
-begin
-  intros m p,
-  exact has_coprime_part_strong m m p (by linarith),
-end
-
-lemma prime_pow_eq_one_imp_pow_eq_zero {p i : ℕ} (hp : nat.prime p) : p^i = 1 → i = 0 :=
-begin
-  induction i with i hi,
-  simp,
-
-  by_cases i = 0,
-  simp [h],
-  intros hh,
-  rw hh at hp,
-  exact not_prime_one hp,
-
-  have : i.succ = i + 1, exact rfl,
-  rw this,
-  rw pow_add,
-  simp,
-  intros hh,
-  have : p ∣ 1,
-    calc p ∣ p ^ i * p : dvd_mul_left p (p ^ i)
-      ... = 1 : hh,
-  have : p = 1, exact nat.dvd_one.mp this,
-  rw this at hp,
-  exact not_prime_one hp,
-end
-
-lemma one_lt_prime {p : ℕ} (hp : nat.prime p) : 1 < p :=
-begin
-  have : 2 ≤ p,
-  apply two_le_nat_iff_not_zero_one.mpr,
-  split,
-  by_contradiction H,
-  rw H at hp,
-  exact not_prime_zero hp,
-  by_contradiction H,
-  rw H at hp,
-  exact not_prime_one hp,
-  linarith,
-end
-
-lemma exp_eq_iff_pow_eq {a m n : ℕ} : 2 ≤ a → (m = n ↔ a ^ m = a ^ n) :=
-begin
-  intros h,
-  split,
-  exact congr_arg (λ {m : ℕ}, a ^ m),
-  intros hh,
-  cases nat.lt_trichotomy m n with ht,
-  have : a ^ m < a ^ n, exact pow_lt_pow (calc 1 < 2 : by linarith ... ≤ a : h) ht,
-  linarith,
-  cases h_1 with ht,
-  exact ht,
-  have : a ^ n < a ^ m, exact pow_lt_pow (calc 1 < 2 : by linarith ... ≤ a : h) h_1,
-  linarith,
-end
-
-lemma nat_idemp_iff_zero_one {p : ℕ} : p = p * p ↔ p = 0 ∨ p = 1 :=
-begin
-  have : p = 1 * p, simp,
-  conv {
-    to_lhs,
-    to_lhs,
-    rw this,
-  },
-  split,
-  intros h,
-  by_cases pp : p = 0,
-  left, exact pp,
-  have : 0 < p, exact zero_lt_iff.mpr pp,
-  rw nat.mul_left_inj this at h,
-  right,
-  exact h.symm,
-  intros h,
-  cases h,
-  simp [h],
-  simp [h],
-end
-
-lemma pow_le_abs_pow {a : ℝ} {b : ℕ} : a^b ≤ |a| ^ b :=
-begin
-  by_cases 0 ≤ a,
-  rwa abs_of_nonneg,
-  have : a < 0, linarith,
-  by_cases even b,
-  cases h with k hk,
-  rw [hk, pow_mul, pow_mul, ← abs_of_nonneg (pow_two_nonneg a), (pow_abs a)],
-  obtain ⟨k, hk⟩ : odd b, simp [h],
-  have : a ^ b ≤ 0, {
-    rw [hk, pow_add, mul_nonpos_iff],
-    left, split,
-    rw pow_mul,
-    simp [pow_two_nonneg a, pow_nonneg],
-    linarith,
-  },
-  calc a ^ b ≤ 0 : this
-    ... ≤ |a| ^ b : by simp [abs_nonneg, pow_nonneg],
-end
-
-lemma prime_squarefree {p : ℕ} (hp : nat.prime p) : squarefree p :=
-begin
-  unfold squarefree,
-  intros x hx,
-  rw dvd_prime at hx,
-  cases hx,
-  rw nat.mul_eq_one_iff at hx,
-  simp at hx,
-  simp [hx],
-  have : x ∣ p,
-    calc x ∣ x * x : dvd_mul_right x x
-      ... = p : hx,
-  rw dvd_prime hp at this,
-  cases this,
-  simp [this],
-  rw this at hx,
-  have : p = 0 ∨ p = 1, exact nat_idemp_iff_zero_one.mp hx.symm,
-  cases this,
-  exfalso,
-  rw this_1 at hp,
-  exact not_prime_zero hp,
-  simp [this_1],
-  rwa this_1 at this,
-  exact hp,
-end
+namespace squarefree_sums
 
 -----------------------------------------
 --         SUMMABILITY LEMMAS
@@ -1700,11 +1448,13 @@ end
 
 
 -- Converting from natural division to real division only picks up √x in error
+def μ_over_d2 (d : ℕ) := ↑(μ d) * ((d : ℝ) ^ 2)⁻¹
+
 def sum_μ_times_floor_n_over_d2 (n : ℕ) :=
 ((∑ d in finset.Ico 1 (sqrt n), (μ d) * n.div (d^2)) : ℝ)
 
 def sum_μ_times_n_over_d2 (n : ℕ) :=
-∑ d in finset.Ico 1 (sqrt n), ↑(μ d) * ↑n * ((d : ℝ) ^ 2)⁻¹
+∑ d in finset.Ico 1 (sqrt n), ↑n * μ_over_d2 d -- ↑(μ d) * ↑n * ((d : ℝ) ^ 2)⁻¹
 
 -- How do I use to_floor_semiring?
 instance : floor_semiring ℝ :=
@@ -1802,100 +1552,165 @@ begin
   simp,
 end
 
-def μ_over_d2 (d : ℕ) := ↑(μ d) * ((d : ℝ) ^ 2)⁻¹
 
 def μ_sum_at_2 := ∑' i, μ_over_d2 i
 
-def heaviside (d e : ℕ) := ite (e < d) 0 1
+lemma summable_μ_over_d2 : summable μ_over_d2 := by sorry
 
-def anti_heaviside (d e : ℕ) := ite (e < d) 1 0
+def goal_func := (λ (n : ℕ), ↑n * μ_sum_at_2)
 
-def μ_over_d2_upto (d : ℕ) := (∑ i in finset.Ico 1 d, μ_over_d2 i)
+def one_over_d2_from (d : ℕ) := (∑' i, ite (d ≤ i) ((i : ℝ) ^ 2)⁻¹ 0)
 
-def μ_over_d2_heaviside (d i : ℕ) := ↑(heaviside d i) * (μ_over_d2 i)
+lemma tsum_sub_head_eq_tail
+{n : ℕ}
+{f : ℕ → ℝ}
+:
+summable f → ∑' (i : ℕ), f i - ∑' (i : ℕ), ite (i ≤ n) (f i) 0 = ∑' (i : ℕ), ite (n < i) (f i) 0
+:= by sorry
 
-def μ_over_d2_anti_heaviside (d i : ℕ) := ↑(anti_heaviside d i) * (μ_over_d2 i)
+lemma tsum_sub_head_eq_tail'
+{n : ℕ}
+{f : ℕ → ℝ}
+:
+summable f → ∑' (i : ℕ), f i - ∑' (i : ℕ), ite (i < n) (f i) 0 = ∑' (i : ℕ), ite (n ≤ i) (f i) 0
+:=
+begin
+  intros hf,
+  induction n with n hn,
+  simp,
+  have : ∀ (i n : ℕ), ite (i < n.succ) (f i) 0 = ite (i ≤ n) (f i) 0,
+  {
+    intros i n,
+    by_cases h : i < n.succ,
+    simp [h],
+    rw lt_succ_iff at h,
+    simp [h],
+    simp [h],
+    push_neg at h,
+    rw succ_le_iff at h,
+    rw lt_iff_not_ge' at h,
+    simp [h],
+  },
+  conv {
+    to_lhs,
+    congr,
+    skip,
+    congr,
+    funext,
+    rw this i n,
+  },
+  rw tsum_sub_head_eq_tail hf,
+  have : ∀ (i n : ℕ), ite (n.succ ≤ i) (f i) 0 = ite (n < i) (f i) 0,
+  {
+    intros i n,
+    by_cases h : n.succ ≤ i,
+    simp [h],
+    rw succ_le_iff at h,
+    simp [h],
+    simp [h],
+    push_neg at h,
+    rw lt_succ_iff at h,
+    have : ¬ n < i, exact not_lt.mpr h,
+    simp [this],
+  },
+  conv {
+    to_rhs,
+    congr,
+    funext,
+    rw this i n,
+  },
+end
 
-def μ_over_d2_from (d : ℕ) := (∑' i, μ_over_d2_heaviside d i)
+lemma blarg
+{n : ℕ}
+{f : ℕ → ℝ}
+(hf : f 0 = 0)
+:
+∑' (i : ℕ), ite (i < n) (f i) 0 = ∑ i in finset.Ico 1 n, f i
+:=
+begin
+  sorry,
+end
 
-def one_over_d2_from (d : ℕ) := (∑' i, ↑(heaviside d i) * ((i : ℝ) ^ 2)⁻¹)
-
-lemma asdf (d : ℕ) : μ_sum_at_2 - μ_over_d2_upto d = μ_over_d2_from d := sorry
+lemma tsum_sub_head_eq_tail''
+{n : ℕ}
+{f : ℕ → ℝ}
+(hf : f 0 = 0)
+:
+summable f → ∑' (i : ℕ), f i - ∑ (i : ℕ) in finset.Ico 1 n, f i = ∑' (i : ℕ), ite (n ≤ i) (f i) 0
+:=
+begin
+  rw ← blarg hf,
+  exact tsum_sub_head_eq_tail',
+end
 
 -- Extend the sum to infinity and pick up a O(√x) term
 lemma step5' :
 is_Ot
 sum_μ_times_n_over_d2
-(λ (n : ℕ), ↑n * μ_sum_at_2)
+goal_func
 (λ (n : ℕ), ↑n * one_over_d2_from (sqrt n))
 at_top
 :=
 begin
-
-end
-
-lemma step5 :
-is_Ot
-(λ (n : ℕ), ↑n * μ_sum_at_2)
-(λ (n : ℕ), ↑n * μ_over_d2_upto (sqrt n))
-(λ (n : ℕ), ↑n * one_over_d2_from (sqrt n))
-at_top
-:=
-begin
-  -- unfold asymptotics.is_Ot,
+  unfold is_Ot,
   use 1,
   unfold asymptotics.is_O_with,
   simp,
   use 100,
   intros b hb,
-  rw real.norm_eq_abs,
-  rw real.norm_eq_abs,
-  have : ↑b * μ_sum_at_2 - ↑b * μ_over_d2_upto (sqrt b) = ↑b * (μ_sum_at_2 - μ_over_d2_upto (sqrt b)), ring,
-  have : |↑b * μ_sum_at_2 - ↑b * μ_over_d2_upto (sqrt b)| = |↑b| * |μ_sum_at_2 - μ_over_d2_upto (sqrt b)|, {
-    simp [abs_mul, this],
-  },
+  rw [real.norm_eq_abs, real.norm_eq_abs],
+  unfold sum_μ_times_n_over_d2,
+  unfold goal_func,
+  unfold one_over_d2_from,
+  have : |∑ (d : ℕ) in Ico 1 (sqrt b), ↑b * μ_over_d2 d - ↑b * μ_sum_at_2| = ↑b * |∑ (d : ℕ) in Ico 1 (sqrt b), μ_over_d2 d - μ_sum_at_2|, sorry,
   rw this,
-  rw asdf,
   apply mul_le_mul,
-  have : |(b : ℝ)| = b, {
-    simp [abs_nonneg],
-  },
-  rw this,
+  simp,
   {
-    unfold μ_over_d2_from,
-    unfold one_over_d2_from,
-    have : |∑' (i : ℕ), μ_over_d2_heaviside (sqrt b) i| ≤ ∑' (i : ℕ), |μ_over_d2_heaviside (sqrt b) i|, {
-      exact abs_tsum_le_tsum_abs (μ_over_d2_heaviside (sqrt b)),
+    -- The meat of the problem
+    rw abs_sub_comm,
+    unfold μ_sum_at_2,
+    have u1 : μ_over_d2 0 = 0, unfold μ_over_d2, simp,
+    conv {
+      to_lhs,
+      congr,
+      rw tsum_sub_head_eq_tail'' u1 summable_μ_over_d2,
     },
-    have : ∀ (x : ℕ), (λ i, ∥μ_over_d2_heaviside (sqrt b) i∥) x ≤ (λ i, ↑(heaviside (sqrt b) i) * (↑i ^ 2)⁻¹) x, {
-      intros x,
-      simp,
-      unfold μ_over_d2_heaviside,
-      unfold heaviside,
-      by_cases x < sqrt b,
-      simp [h],
+    transitivity,
+    exact abs_tsum_le_tsum_abs _,
+    have u4 : ∀ (i : ℕ), 0 ≤ ite (sqrt b ≤ i) ((i : ℝ) ^ 2)⁻¹ 0, {
+      intros i,
+      by_cases h : sqrt b ≤ i, {
+        simp [h],
+      },
+      {
+        simp [h],
+      }
+    },
+    rw abs_of_nonneg (tsum_nonneg u4),
+    apply tsum_le_tsum,
+    intros c,
+    by_cases h : sqrt b ≤ c, {
       simp [h],
       unfold μ_over_d2,
-      simp [abs_mu_le_one],
-      have : ((x : ℝ) ^ 2)⁻¹ = 1 * ((x : ℝ) ^ 2)⁻¹, simp,
-      conv {
-        to_rhs,
-        rw this,
-      },
-      apply mul_le_mul,
-      {
-        simp [real.norm_eq_abs, abs_mu_le_one, μ],
-        sorry,  -- lift to ℝ ?
-      },
-      exact rfl.le,
-      simp [inv_nonneg, pow_nonneg],
-      linarith,
+      rw abs_mul,
+      sorry,
     },
-    -- keep going
+    {
+      simp [h],
+    },
+    sorry,
+    sorry,
   },
   exact abs_nonneg _,
-  simp [hb],
+  -- This collection of explicit casts is very annoying
+  have : (0 : ℝ) = ↑ (0 : ℕ), simp,
+  rw this,
+  rw nat.cast_le,
+  linarith [hb],
 end
+
 
 lemma abs_tsum_nonneg_eq_tsum
 {f : ℕ → ℝ}
@@ -1915,8 +1730,8 @@ end
 
 lemma step6 :
 asymptotics.is_O
-(λ (x : ℝ), x * ∑' (i : ℕ), (λ (j : ℕ), ite (x < ↑j) ((j : ℝ) ^ 2)⁻¹ 0) i)
-(λ (x : ℝ), x ^ ((1 : ℝ) / 2))
+(λ (n : ℕ), ↑n * one_over_d2_from (sqrt n))
+(λ (n : ℕ), (n : ℝ) ^ ((1 : ℝ) / 2))
 at_top
 :=
 begin
@@ -1926,15 +1741,28 @@ begin
   simp,
   use 200,
   intros b hb,
-  rw [real.norm_eq_abs, real.norm_eq_abs, real.norm_eq_abs],
+  rw [real.norm_eq_abs, real.norm_eq_abs],
   have : |∑' (i : ℕ), ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0| ≤ ∑' (i : ℕ), |ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0|,
   exact abs_tsum_le_tsum_abs (λ (i : ℕ), ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0),
   have : ∑' (i : ℕ), |ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0| = ∑' (i : ℕ), ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0,
   congr,
   funext,
   simp,
-  by_cases b < ↑i,
+  by_cases b < i,
   simp [h],
   simp [h],
+  sorry,
+end
+
+theorem bigbad :
+is_Ot
+(λ (n : ℕ), ∑ (i : ℕ) in finset.Icc 1 n, squarefree_nat i)
+goal_func
+(λ (n : ℕ), (n : ℝ) ^ ((1 : ℝ) / 2))
+at_top
+:=
+begin
 
 end
+
+end squarefree_sums

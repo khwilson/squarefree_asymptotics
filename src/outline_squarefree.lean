@@ -75,30 +75,6 @@ lemma pow_le_abs_pow {a : ℝ} {b : ℕ} : a^b ≤ |a| ^ b := begin
   simp [abs_nonneg, pow_nonneg],
 end
 
-lemma minus_one_pow_odd_eq_minus_one : ∀ (a : ℕ), odd a → (-1 : ℤ) ^ a = -1 :=
-begin
-  intros a ha,
-  cases ha with k hk,
-  rw [hk, pow_add, pow_mul],
-  simp,
-end
-
-lemma minus_one_pow_even_eq_one : ∀ (a : ℕ), even a → (-1 : ℤ) ^ a = 1 :=
-begin
-  intros a ha,
-  cases ha with k hk,
-  rw [hk, pow_mul],
-  simp,
-end
-
-lemma minus_one_pow_eq_pm_one {a : ℕ} : (-1 : ℤ) ^ a = 1 ∨ (-1 : ℤ) ^ a = -1 :=
-begin
-  have : odd a ∨ even a, simp [odd_iff_not_even, or.symm, or_not],
-  cases this,
-  simp [minus_one_pow_odd_eq_minus_one a this],
-  simp [minus_one_pow_even_eq_one a this],
-end
-
 lemma abs_mu_le_one {a : ℕ} : |arithmetic_function.moebius a| ≤ 1 :=
 begin
   unfold arithmetic_function.moebius,
@@ -150,6 +126,17 @@ begin
   linarith,
 end
 
+lemma const_dirichlet_summable : ∀ (d : ℕ) (C : ℝ), 2 ≤ d → summable (λ (n : ℕ), C * ((n : ℝ) ^ d)⁻¹) :=
+begin
+  intros d C hd,
+  by_cases C = 0,
+  conv { congr, funext, rw h, simp, },
+  exact summable_zero,
+  rw ← summable_mul_left_iff,
+  exact one_dirichlet_summable d hd,
+  exact h,
+end
+
 lemma bounded_dirichlet_summable
 (f : ℕ → ℝ)
 (hC : ∃ C, ∀ (n : ℕ), |f n| ≤ C) :
@@ -158,11 +145,7 @@ lemma bounded_dirichlet_summable
 begin
   intros d hd,
   rw ← summable_abs_iff,
-  have : (λ (x : ℕ), | f x * (↑x ^ d)⁻¹ |) = (λ (x : ℕ), |f x | * |(↑x ^ d)⁻¹|), {
-    ext,
-    rw abs_mul,
-  },
-  rw this,
+  conv { congr, funext, rw abs_mul},
   cases hC with C hC,
   apply summable_of_nonneg_of_le,
   intros b,
@@ -183,12 +166,7 @@ begin
     intros b,
     simp,
   },
-  have ffff : (λ (n : ℕ), ((n : ℝ) ^ d)⁻¹) = (λ (n : ℕ), |((n : ℝ) ^ d)⁻¹|), {
-    ext,
-    rw abs_of_nonneg,
-    exact this x,
-  },
-  rw ← ffff,
+  conv { congr, funext, rw abs_of_nonneg (this b), },
   exact one_dirichlet_summable d hd,
 end
 
@@ -371,11 +349,6 @@ begin
   rw this,
   simp,
 end
-
-def is_square (n : ℕ) : Prop := ∃ s, s * s = n
-
-instance : decidable_pred (is_square : ℕ → Prop)
-| n := decidable_of_iff' _ (nat.exists_mul_self n)
 
 def num_square_divisors (n : ℕ) := (n.divisors.filter is_square).card
 

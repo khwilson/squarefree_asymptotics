@@ -1,0 +1,8 @@
+[package]
+name = "d4_second_order_verify"
+version = "0.1"
+lean_version = "leanprover-community/lean:3.38.0"
+path = "src"
+
+[dependencies]
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "bd3b892f8669edc750e627fecfe55f8201c9f602"}
