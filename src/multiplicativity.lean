@@ -6,6 +6,7 @@ import tactic
 import measure_theory.integral.interval_integral
 import general
 import defs
+import lemmas_on_defs
 
 noncomputable theory
 open nat finset function filter
@@ -201,7 +202,7 @@ begin
     {
       unfold ssqrt,
       have : ¬ is_square (m * n), exact coprime_prod_not_squares_is_not_square hmn hm,
-      simp [hm, hn, this],
+      simp [hm, this],
     },
   },
 end
