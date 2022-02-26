@@ -8,6 +8,7 @@ import algebra.order.floor
 import data.list.intervals
 import tactic
 import measure_theory.integral.interval_integral
+import analysis.p_series
 import general
 
 noncomputable theory
@@ -67,7 +68,8 @@ begin
   exact one_dirichlet_summable d hd,
 end
 
-lemma abs_sum_le_sum_abs' {f : ℕ → ℝ} {s : finset ℕ}: | ∑ d in s, f d | ≤ ∑ d in s, | f d | :=
+lemma abs_sum_le_sum_abs' {f : ℕ → ℝ} {s : finset ℕ} :
+| ∑ d in s, f d | ≤ ∑ d in s, | f d | :=
 begin
   apply finset.induction_on s,
   simp only [finset.sum_empty, abs_zero],
@@ -76,7 +78,6 @@ begin
     simp only [his, finset.sum_insert, not_false_iff],
     exact (abs_add _ _).trans (add_le_add (le_refl (|f i|)) IH),
   },
-  sorry,
 end
 
 lemma abs_tsum_le_tsum_abs {f : ℕ → ℝ} : | ∑' i, f i | ≤ (∑' i, |f i|) :=
