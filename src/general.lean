@@ -262,4 +262,101 @@ begin
   exact hp,
 end
 
+lemma Ico_eq_range {n : ℕ} : finset.Ico 0 n = finset.range n :=
+begin
+  simp,
+end
+
+lemma finset.union_singleton {n : ℕ} {s : finset ℕ} : s ∪ {n} = insert n s :=
+begin
+  ext,
+  rw [mem_union, mem_insert, mem_singleton, or_comm],
+end
+
+lemma sqrt_one_eq_one : 1 = sqrt 1 := by { rw eq_sqrt, simp, linarith, }
+
+lemma one_le_sqrt {n : ℕ} (hn : 1 ≤ n) : 1 ≤ sqrt n :=
+begin
+  rw sqrt_one_eq_one,
+  exact sqrt_le_sqrt hn,
+end
+
+lemma not_mem_if_gt_max'
+{s : finset ℕ}
+{hs : s.nonempty}
+{n : ℕ}
+(hn : max' s hs < n)
+:
+n ∉ s
+:=
+begin
+  by_contradiction H,
+  linarith [calc n ≤ max' s hs : le_max' s n H ... < n : hn],
+end
+
+lemma tendsto_abs {f : finset ℕ → ℝ} {a : ℝ} (h : filter.tendsto f at_top (nhds a)) : filter.tendsto (λ n, |f n|) at_top (nhds (|a|)) :=
+begin
+  rw ← real.norm_eq_abs,
+  conv {
+    congr,
+    funext,
+    rw ← real.norm_eq_abs,
+  },
+  apply filter.tendsto.norm,
+  simp [h],
+end
+
+lemma finset.subset_finset_min_max {s : finset ℕ} (hs : s.nonempty) : s ⊆ finset.Icc (s.min' hs) (s.max' hs) :=
+begin
+  rw subset_iff,
+  intros x hx,
+  simp,
+  by_contradiction H,
+  push_neg at H,
+  by_cases h : s.min' hs ≤ x,
+  specialize H h,
+  rw finset.max'_lt_iff at H,
+  specialize H x hx,
+  linarith,
+  push_neg at h,
+  rw finset.lt_min'_iff at h,
+  specialize h x hx,
+  linarith,
+end
+
+lemma finset.Icc_subset_range {a b : ℕ} : finset.Icc a b ⊆ finset.range (b + 1) :=
+begin
+  rw subset_iff,
+  intros x hx,
+  rw finset.mem_range,
+  simp at hx,
+  simp [lt_succ_of_le hx.right],
+end
+
+lemma abs_of_ite
+{p : Prop}
+{a b : ℝ}
+:
+|ite p a b| = ite p (|a|) (|b|)
+:=
+begin
+  by_cases h : p,
+  simp [h],
+  simp [h],
+end
+
+lemma ite_const_rw
+{n : ℕ}
+{f : ℕ → ℝ}
+:
+∀ (i : ℕ), ite (i = n) (f i) 0 = ite (i = n) (f n) 0
+:=
+begin
+  intros i,
+  by_cases i = n,
+  simp [h],
+  simp [h],
+end
+
+
 end squarefree_sums
