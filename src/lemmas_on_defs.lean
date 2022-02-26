@@ -202,67 +202,24 @@ begin
   ring,
 end
 
-lemma coprime_prod_not_squares_is_not_square_strong : ∀ (B b a : ℕ), b ≤ B → a.coprime b → ¬ is_square a → ¬ is_square (a * b) :=
-begin
-  intros B,
-  induction B with B hB,
-  {
-    intros b a hb hab ha_ns,
-    have : b = 0, linarith,
-    rw this at hab,
-    have : a = 1, {
-      exact (coprime_zero_right a).mp hab,
-    },
-    exfalso,
-    simp [this] at ha_ns,
-    unfold is_square at ha_ns,
-    push_neg at ha_ns,
-    specialize ha_ns 1,
-    simp at ha_ns,
-    exact ha_ns,
-  },
-  {
-    intros b a hb hab ha_ns,
-    by_cases b_ne_zero : b = 0, {
-      exfalso,
-      rw b_ne_zero at hab,
-      rw coprime_zero_right at hab,
-      rw hab at ha_ns,
-      exact ha_ns is_square_one,
-    },
-    by_cases b_ne_one : b = 1, {
-      simpa [b_ne_one],
-    },
-    have two_le_b : 2 ≤ b, exact two_le_nat_iff_not_zero_one.mpr ⟨b_ne_zero, b_ne_one⟩,
-    obtain ⟨p, hp, p_dvd_b⟩ : ∃ p, nat.prime p ∧ p ∣ b, exact exists_prime_and_dvd two_le_b,
-    obtain ⟨b', i, hb', pb_coprime⟩ := has_coprime_part b p (by linarith) hp,
-    by_cases b' = 1,
-    sorry,
-    have aaa : p^i ≤ B, sorry,
-    have bbb : a.coprime (p ^ i), sorry,
-    have ccc : ¬ is_square (a * p ^ i), exact hB (p^i) a aaa bbb ha_ns,
-    have ddd : (a * p ^ i).coprime b', sorry,
-    have eee : b' ≤ B, sorry,
-    let foo := hB b' (a * p^i) eee ddd ccc,
-    have : a * p ^ i * b' = a * b, rw hb', ring,
-    rwa this at foo,
-  },
-end
-
 lemma coprime_prod_not_squares_is_not_square {a b : ℕ} (hab : a.coprime b) (ha : ¬ is_square a) : ¬ is_square (a * b) :=
 begin
-  exact coprime_prod_not_squares_is_not_square_strong b b a (by linarith) hab ha,
+  by_contradiction H,
+  unfold is_square at H,
+  rcases H with ⟨s, hs⟩,
+  have : a = (s.gcd a) * (s.gcd a), {
+    exact (nat.gcd_mul_gcd_of_coprime_of_mul_eq_mul hab hs).symm,
+  },
+  unfold is_square at ha,
+  push_neg at ha,
+  exact (ha $ s.gcd a).symm this,
 end
 
 lemma coprime_prod_not_squares_is_not_square' {a b : ℕ} (hab : a.coprime b) (hb : ¬ is_square b) : ¬ is_square (a * b) :=
 begin
-  conv {
-    congr,
-    congr,
-    rw mul_comm,
-  },
+  rw mul_comm,
   have hab' : b.coprime a, exact (coprime_comm.mp) hab,
-  exact coprime_prod_not_squares_is_not_square_strong a a b (by linarith) hab' hb,
+  exact coprime_prod_not_squares_is_not_square hab' hb,
 end
 
 lemma coprime_ssqrt {a b : ℕ} (ha : is_square a) (hb : is_square b) (hab : a.coprime b) : (ssqrt a).coprime (ssqrt b) :=
