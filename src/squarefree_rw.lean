@@ -132,7 +132,8 @@ begin
   have : 2 ≤ i, exact two_le_nat_iff_not_zero_one.mpr ⟨c1, c2⟩,
   rw ← hi,
   simp [barrr hp this, barrr hp (le_of_lt (calc 2 ≤ i : this ... < i.succ : lt_succ_self i))],
-  simp [foo p (i + 1) hp (by linarith)],
+
+  simp [sμ_prime_pow_le_three p (i + 1) hp (by linarith)],
 end
 
 
