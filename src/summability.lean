@@ -107,6 +107,22 @@ begin
   simp [h, this],
 end
 
+lemma abs_tsum_nonneg_eq_tsum
+{f : ℕ → ℝ}
+(hf : ∀ (n : ℕ), 0 ≤ f n)
+:
+|∑' (i : ℕ), f i| = ∑' (i : ℕ), f i
+:=
+begin
+  by_cases h : summable f,
+  obtain ⟨c, hc⟩ := h,
+  rw has_sum.tsum_eq hc,
+  apply abs_of_nonneg,
+  exact has_sum_mono has_sum_zero hc hf,
+  unfold tsum,
+  simp [h],
+end
+
 lemma summable_of_eventually_zero
 {f : ℕ → ℝ}
 (hf : ∃ (N : ℕ), ∀ (n : ℕ), N ≤ n → f n = 0)
@@ -234,6 +250,23 @@ begin
     by_contradiction H,
     linarith,
   simp [this],
+end
+
+lemma head_summable_R'
+{n : ℕ}
+{f : ℝ → ℝ}
+:
+summable (λ (i : ℕ), ite (i < n) (f ↑i) 0)
+:=
+begin
+  let g : (ℕ → ℝ) := (λ (i : ℕ), f ↑i),
+  have : ∀ (i : ℕ), g i = f ↑i, intros i, simp,
+  conv {
+    congr,
+    funext,
+    rw ← this i,
+  },
+  exact head_summable',
 end
 
 lemma single_summable

@@ -358,5 +358,13 @@ begin
   simp [h],
 end
 
+lemma interval_eq_Icc {a b : ℝ} (hab : a ≤ b) : [a, b] = set.Icc a b :=
+begin
+  unfold set.interval,
+  have : min a b = a, simp [hab],
+  rw this,
+  have : max a b = b, simp [hab],
+  rw this,
+end
 
 end squarefree_sums

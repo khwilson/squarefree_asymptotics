@@ -7,6 +7,8 @@ import measure_theory.integral.interval_integral
 import analysis.special_functions.integrals
 import defs
 import summability
+import lemmas_on_tendsto
+import general
 
 noncomputable theory
 -- open_locale classical
@@ -52,7 +54,24 @@ begin
   exact aa,
 end
 
-lemma doodoo (k : ℕ) : ∀ (x : ℝ), x ∈ set.Ioo (k : ℝ) (↑k + 1) → ⌊x⌋₊ = k := sorry
+lemma doodoo (k : ℕ) : ∀ (x : ℝ), x ∈ set.Ioo (k : ℝ) (↑k + 1) → ⌊x⌋₊ = k :=
+begin
+  intros x hx,
+  simp at hx,
+  have zero_le_x : 0 ≤ x, {
+    have : 0 ≤ k, linarith,
+    calc (0 : ℝ) ≤ ↑k : by simp ... ≤ x : by simp [hx.left, le_of_lt],
+  },
+  have is_le : ⌊x⌋₊ ≤ k, {
+    rw ← lt_succ_iff,
+    have : (⌊x⌋₊ : ℝ) < k.succ, calc ↑⌊x⌋₊ ≤ x : nat.floor_le zero_le_x ... < k.succ : by simp [hx.right],
+    rw cast_lt at this,
+    exact this,
+  },
+  have : ↑k ≤ x, exact le_of_lt hx.left,
+  have is_ge : k ≤ ⌊x⌋₊, exact nat.le_floor this,
+  linarith [is_le, is_ge],
+end
 
 lemma fafa (n : ℕ) (f : ℕ → ℝ) :
 ∫ (x : ℝ) in ↑n..↑n + 1, f n
@@ -180,13 +199,17 @@ begin
   induction n with n hn,
   { simp },
   {
-    let tail := hint (m + n) (by sorry),
     have :  ∀ (k : ℕ), k < m + n → interval_integrable f ν (a k) (a (k + 1)),
     intros k hk,
-    have : k < m + n.succ, sorry,
+    have : k < m + n.succ, {
+      transitivity,
+      exact hk,
+      apply nat.add_lt_add_left,
+      rw lt_succ_iff,
+    },
     exact hint k this,
     specialize hn this,
-    exact interval_integrable.trans hn tail,
+    exact interval_integrable.trans hn (hint (m + n) (by {apply nat.add_lt_add_left, rw lt_succ_iff})),
   },
 end
 
@@ -207,284 +230,476 @@ begin
   apply interval_integral.integral_add_adjacent_intervals,
   have : ∀ (k : ℕ), k < m + n → interval_integrable f ν (a k) (a (k + 1)),
   { intros k hk,
-    have : k < m + n.succ, calc k < m + n : hk ... < m + n.succ : by sorry,
+    have : k < m + n.succ, calc k < m + n : hk ... < m + n.succ : nat.add_lt_add_left (lt_succ_self n) m,
     exact hint k this, },
   apply interval_integrable.trans_iterate',
   intros k hk, exact this k hk,
-  exact hint (m + n) (by sorry),
-  intros k hk, exact hint k (by sorry),
+  exact hint (m + n) (nat.add_lt_add_left (lt_succ_self n) m),
+  intros k hk,
+  exact hint k (by calc k < m + n : hk ... < m + n.succ : nat.add_lt_add_left (lt_succ_self n) m),
   simp,
 end
 
-lemma sum_le_antitone_integral {a b : ℕ} {f : ℝ → ℝ} (hab : a ≤ b) (hf : antitone_on f (set.Icc a b)) :
-∑ x in finset.Ico a b, f x ≤ ∫ x in a..b, f x :=
+lemma sum_integral_adjacent_intervals''
+  {α : Type*} [linear_order α] [measurable_space α] [topological_space α] [order_closed_topology α] [opens_measurable_space α]
+  {ν : measure α}
+  {a : ℕ → α} {m n : ℕ}
+  {f : α → ℝ}
+  (hmn : m ≤ n)
+  (hint : ∀ (k : ℕ), (k < n) → interval_integrable f ν (a k) (a $ k+1)) :
+  ∑ (k : ℕ) in finset.Ico m n, ∫ x in (a k)..(a $ k+1), f x ∂ν = ∫ x in (a m)..(a n), f x ∂ν :=
 begin
+  have : n = m + (n - m), {
+    zify,
+    ring,
+  },
+  rw this, rw this at hint,
+  exact sum_integral_adjacent_intervals' hint,
+end
 
+lemma convert_finite_sum_to_interval_integral' {m n : ℕ} {f : ℝ → ℝ} (hmn : m ≤ n) :
+∑ (i : ℕ) in finset.Ico m n,
+∫ (x : ℝ) in ↑i..↑i + 1,
+f ↑i
+=
+∫ (x : ℝ) in m..n, f ↑⌊x⌋₊
+:=
+begin
+  let g : ℝ → ℝ := (λ x, f ↑⌊x⌋₊),
+  -- Problem: There are a lot of lemmas that show that if a function is constant
+  -- on all of ℝ then the function is integrable, but this function is constant _only_
+  -- on the interval of integration. This is messing up the parser.
+  have hint : ∀ (k : ℕ), k < n → interval_integrable g measure_theory.measure_space.volume (k : ℝ) ((k : ℝ) + 1),
+  {
+    intros k hk,
+    have : ∃c, ∀ (x : ℝ), x ∈ set.Ioo (k : ℝ) (↑k + 1) → g x = c, {
+      use f k,
+      intros x hx,
+      simp [g],
+      rw doodoo k x hx,
+    },
+    exact real_constant_on_interval_integrable k (k + 1) (by linarith) g this,
+  },
+  have t1 : ∀ (i : ℕ), (i : ℝ) ≤ ↑i + 1, {
+    intros i,
+    simp,
+  },
+  have : ∀ (i : ℕ), ∫ (x : ℝ) in ↑i..↑i + 1, f ↑i = ∫ (x : ℝ) in ↑i..↑i + 1, f ⌊x⌋₊, {
+    intros i,
+    rw interval_integral.integral_of_le (t1 i),
+    rw interval_integral.integral_of_le (t1 i),
+    rw integral_Ioc_eq_integral_Ioo,
+    rw integral_Ioc_eq_integral_Ioo,
+    apply integral_congr_ae,
+    rw filter.eventually_eq_iff_exists_mem,
+    use set.Ioo (i : ℝ) (↑i + 1),
+    split,
+    rw mem_ae_iff,
+    simp,
+    unfold eq_on,
+    intros x hx,
+    rw doodoo i x hx,
+  },
   conv {
     to_lhs,
     congr,
     skip,
     funext,
-    rw ← fdsa x (f ↑x),
+    rw this i,
   },
-  unfold antitone_on at hf,
-  have : ∀ (x : ℕ), x ∈ finset.Ico a b → ∫ (y : ℝ) in ↑x..↑x + 1, f ↑x ≤ ∫ (y : ℝ) in ↑x..↑x + 1, f y,
-  {
-    intros x hx,
-    have hhf : interval_integrable (λ y, f ↑x) real.measure_space.volume a b, sorry,
-    have hhg : interval_integrable f real.measure_space.volume a b, sorry,
-    have hh : ∀ (y : ℝ), y ∈ set.Icc (x : ℝ) (↑x + 1) → ((λ y, f ↑x) y) ≤ f y, sorry,
-    have hxx : (x : ℝ) ≤ ↑x + 1, sorry,
-    exact interval_integral.integral_mono_on hxx hhf hhg hh,
-  },
-  obtain ⟨k', hk'⟩ := le_iff_exists_add.mp hab,
-  rw hk',
-  have hint : ∀ (i : ℕ), (i < a + k') → interval_integrable f real.measure_space.volume i (i+1),
-  {
-    sorry,
-  },
-
-  rw [sum_integral_adjacent_intervals' hint],
+  exact sum_integral_adjacent_intervals'' hmn hint,
 end
 
-lemma bdd_step_above
-{a : ℝ}
-{n : ℕ}
-{f : ℝ → ℝ}
-(ha : 0 ≤ a)
-(hf_mono_ev : ∀ (b b' : ℝ), a ≤ b → b ≤ b' → f b' ≤ f b)
-(hf_nonneg : ∀ (b : ℝ), 0 ≤ f b)
+lemma doodoo'
+{a b : ℕ}
+{x : ℝ}
+(hx : x ∈ set.Icc (a : ℝ) ↑b)
 :
-∀ (x : ℝ), a ≤ ⌊x⌋₊ → f x ≤ f ↑⌊x⌋₊
+↑⌊x⌋₊ ∈ set.Icc (a : ℝ) ↑b
 :=
 begin
-  intros x hx,
-  sorry,
+  simp at hx,
+  have : 0 ≤ x, calc (0 : ℝ) ≤ ↑a : by simp ... ≤ x : hx.left,
+  simp,
+  split,
+  exact le_floor hx.left,
+  have : (⌊x⌋₊ : ℝ) ≤ ↑b, calc ↑⌊x⌋₊ ≤ x : floor_le this ... ≤ ↑b : hx.right,
+  exact cast_le.mp this,
 end
 
-lemma real_tendsto_implies_nat_tendsto
-{a : ℝ}
-{f : ℝ → ℝ}
-(hf : tendsto f at_top (𝓝 a))
+lemma doodoo_ceil'
+{a b : ℕ}
+{x : ℝ}
+(hx : x ∈ set.Icc (a : ℝ) ↑b)
 :
-tendsto (λ (n : ℕ), f ↑n) at_top (𝓝 a) :=
+↑⌈x⌉₊ ∈ set.Icc (a : ℝ) ↑b
+:=
 begin
-  rw tendsto_at_top',
-  intros s hs,
-  rw tendsto_at_top' at hf,
-  specialize hf s hs,
-  cases hf with a ha,
-  use ⌈a⌉₊,
-  intros b,
-  specialize ha ↑b,
-  intros hb,
-  have : ⌈a⌉₊ ≤ b, exact hb,
-  have : a ≤ ↑b,
-    calc a ≤ ↑⌈a⌉₊ : nat.le_ceil a
-      ... ≤ ↑b : cast_le.mpr this,
-  exact ha this,
+  simp at hx,
+  simp,
+  split,
+  have : ↑a ≤ (⌈x⌉₊ : ℝ), calc ↑a ≤ x : hx.left ... ≤ ↑⌈x⌉₊ : le_ceil x,
+  exact cast_le.mp this,
+  exact hx.right,
 end
 
-lemma tendsto_le_zero_ev
-{a : ℝ}
+lemma antitone_integral_le_sum
+{a b : ℕ}
 {f : ℝ → ℝ}
-(hf_le : ∃ (X : ℝ), ∀ (x : ℝ), X ≤ x → f x ≤ 0)
-(hf : tendsto f at_top (𝓝 a))
-:
-a ≤ 0 :=
+(hab : a ≤ b)
+(hf : antitone_on f (set.Icc a b)) :
+∫ x in a..b, f x ≤ ∑ x in finset.Ico a b, f x :=
 begin
-  by_contradiction H,
-  push_neg at H,
-  let s := set.Ioo (a / 2) (3 * a / 2),
-  have : s ∈ 𝓝 a,
-  {
-    rw mem_nhds_iff_exists_Ioo_subset,
-    use [(a / 2), (3 * a / 2)],
-    split,
-    simp,
-    split,
-    linarith,
-    linarith,
-    exact rfl.subset,
+  -- This (a : ℝ) is necessary or else confusion happens
+  have : ∀ (x : ℝ), x ∈ set.Icc (a : ℝ) ↑b → f x ≤ f ⌊x⌋₊, {
+    intros x hx,
+    apply hf,
+    exact doodoo' hx,
+    exact hx,
+    have : ↑a ≤ x, {
+      simp at hx,
+      exact hx.left,
+    },
+    have : 0 ≤ x, calc (0 : ℝ) ≤ ↑a : by simp ... ≤ x : this,
+    exact floor_le this,
   },
-  specialize hf this,
-  rw mem_map_iff_exists_image at hf,
-  rcases hf with ⟨t, ht, ht'⟩,
-  simp at ht,
-  cases ht with B hB,
-  cases hf_le with X hX,
-  specialize hB (max B X) (by simp),
-  have : f (max B X) ∈ s,
-    calc f (max B X) ∈ f '' t : by { use (max B X), exact ⟨hB, rfl⟩, }
-      ... ⊆ s : ht',
-  have : 0 < f (max B X),
-    calc 0 < a / 2 : by linarith
-      ... < f (max B X) : by { simp at this, exact this.left, },
-
-  linarith [this, hX (max B X) (by simp)],
+  transitivity,
+  refine interval_integral.integral_mono_on (cast_le.mpr hab) _ _ this,
+  apply antitone_on.interval_integrable,
+  simp,
+  rwa interval_eq_Icc (cast_le.mpr hab),
+  apply antitone_on.interval_integrable,
+  rwa interval_eq_Icc (cast_le.mpr hab),
+  unfold antitone_on,
+  intros c hc d hd hcd,
+  have u1 : (⌊c⌋₊ : ℝ) ≤ ⌊d⌋₊, {
+    rw cast_le,
+    exact floor_mono hcd,
+  },
+  have u2 : ↑⌊c⌋₊ ∈ set.Icc (a : ℝ) ↑b, exact doodoo' hc,
+  have u3 : ↑⌊d⌋₊ ∈ set.Icc (a : ℝ) ↑b, exact doodoo' hd,
+  exact hf u2 u3 u1,
+  conv {
+    to_rhs,
+    congr,
+    skip,
+    funext,
+    rw ← const_eq_integral_const_on_unit_interval x (f ↑x),
+  },
+  rw convert_finite_sum_to_interval_integral' hab,
 end
 
-lemma tendsto_le_zero_ev'
-{a : ℝ}
+lemma shift_sum
+{a b d : ℕ}
 {f : ℕ → ℝ}
-(hf_le : ∃ (X : ℕ), ∀ (x : ℕ), X ≤ x → f x ≤ 0)
-(hf : tendsto f at_top (𝓝 a))
 :
-a ≤ 0 :=
+∑ (i : ℕ) in finset.Ico (a + d) (b + d), f i = ∑ (i : ℕ) in finset.Ico a b, f (i + d)
+:=
 begin
-  by_contradiction H,
-  push_neg at H,
-  let s := set.Ioo (a / 2) (3 * a / 2),
-  have : s ∈ 𝓝 a,
-  {
-    rw mem_nhds_iff_exists_Ioo_subset,
-    use [(a / 2), (3 * a / 2)],
-    split,
-    simp,
-    split,
-    linarith,
-    linarith,
-    exact rfl.subset,
+  apply finset.sum_bij (λ (i : ℕ) (hi : i ∈ finset.Ico (a + d) (b + d)), i - d),
+  intros m hm, simp, simp at hm, split,
+  let blah := nat.sub_le_sub_right hm.left d, rw nat.add_sub_cancel at blah, exact blah,
+  have : m - d + d < b + d → m - d < b, simp,
+  apply this,
+  have : d ≤ m, calc d ≤ a + d : by simp ... ≤ m : hm.left,
+  rw nat.sub_add_cancel this,
+  exact hm.right,
+
+  intros m hm, simp, congr, symmetry, apply nat.sub_add_cancel, simp at hm, calc d ≤ a + d : by simp ... ≤ m : hm.left,
+
+  intros m n hm hn, simp, simp at hm, simp at hn,
+  have : d ≤ m, calc d ≤ a + d : by simp ... ≤ m : hm.left,
+  rw nat.sub_eq_iff_eq_add this,
+  have : d ≤ n, calc d ≤ a + d : by simp ... ≤ n : hn.left,
+  rw nat.sub_add_cancel this,
+  intros h, exact h,
+
+  intros m hm, use m + d,
+  have : m + d ∈ finset.Ico (a + d) (b + d), {
+    simp at hm,
+    simp [hm],
   },
-  specialize hf this,
-  rw mem_map_iff_exists_image at hf,
-  rcases hf with ⟨t, ht, ht'⟩,
-  simp at ht,
-  cases ht with B hB,
-  cases hf_le with X hX,
-  specialize hB (max B X) (by simp),
-  have : f (max B X) ∈ s,
-    calc f (max B X) ∈ f '' t : by { use (max B X), exact ⟨hB, rfl⟩, }
-      ... ⊆ s : ht',
-  have : 0 < f (max B X),
-    calc 0 < a / 2 : by linarith
-      ... < f (max B X) : by { simp at this, exact this.left, },
-
-  linarith [this, hX (max B X) (by simp)],
+  use this,
+  simp,
 end
 
-lemma tendsto_le_ev
-{a b : ℝ}
-{f g : ℝ → ℝ}
-(hfg : ∃ (X : ℝ), ∀ (x : ℝ), X ≤ x → f x ≤ g x)
-(hf : tendsto f at_top (𝓝 a))
-(hg : tendsto g at_top (𝓝 b))
+lemma mem_Ioo_mem_Icc
+{a b x : ℝ}
 :
-a ≤ b :=
+x ∈ Ioo a b → x ∈ Icc a b :=
 begin
-  cases hfg with X hfg,
-  have : tendsto (f - g) at_top (𝓝 (a - b)),
-    exact filter.tendsto.sub hf hg,
-  have hfg' : ∃ (X : ℝ), ∀ (x : ℝ), X ≤ x → (f - g) x ≤ 0, use X, intros x, simp, exact hfg x,
-  have : a - b ≤ 0, exact tendsto_le_zero_ev hfg' this,
-  linarith,
+  simp,
+  intros is_gt is_lt,
+  split,
+  exact le_of_lt is_gt,
+  exact le_of_lt is_lt,
 end
 
-lemma tendsto_le'
-{a b : ℝ}
-{f g : ℕ → ℝ}
-(hfg : ∃ (X : ℕ), ∀ (x : ℕ), X ≤ x → f x ≤ g x)
-(hf : tendsto f at_top (𝓝 a))
-(hg : tendsto g at_top (𝓝 b))
+lemma somethingblah
+{a b : ℕ}
+{x : ℝ}
 :
-a ≤ b :=
+x ∈ set.Ioo (a : ℝ) ↑b → (⌊x⌋₊ : ℝ) + 1 ∈ set.Icc (a : ℝ) ↑b
+:=
 begin
-  cases hfg with X hfg,
-  have : tendsto (f - g) at_top (𝓝 (a - b)),
-    exact filter.tendsto.sub hf hg,
-  have hfg' : ∃ (X : ℕ), ∀ (x : ℕ), X ≤ x → (f - g) x ≤ 0, use X, intros x, simp, exact hfg x,
-  have : a - b ≤ 0, exact tendsto_le_zero_ev' hfg' this,
-  linarith,
+  simp,
+  intros is_gt is_lt,
+  have : (1 : ℝ) = ↑(1 : ℕ), simp,
+  split,
+  rw this,
+  rw ← cast_add,
+  rw cast_le,
+  calc a ≤ ⌊x⌋₊ : le_floor (le_of_lt is_gt) ... ≤ ⌊x⌋₊ + 1 : le_succ ⌊x⌋₊,
+  rw this,
+  rw ← cast_add,
+  rw cast_le,
+  have zero_le_x : 0 ≤ x,
+  {
+    have : 0 ≤ a, by simp,
+    calc (0 : ℝ) ≤ ↑a : cast_le.mpr this ... ≤ x : le_of_lt is_gt,
+  },
+  have : ⌊x⌋₊ < b, {
+    exact cast_lt.mp (calc ↑⌊x⌋₊ ≤ x : floor_le zero_le_x ... < ↑b : is_lt),
+  },
+  exact succ_le_of_lt this,
 end
 
-lemma coi_antitone_integrable
-{a b : ℝ}
+lemma antitone_sum_le_integral
+{a b : ℕ}
 {f : ℝ → ℝ}
-(hf : antitone_on f [a, b])
+(hab : a ≤ b)
+(hf : antitone_on f (set.Icc a b))
 :
-interval_integrable (coi f) real.measure_space.volume a b
+∑ x in finset.Ico (a + 1) (b + 1), f x  ≤ ∫ x in a..b, f x :=
+begin
+  rw shift_sum,
+  have hf' : antitone_on f (set.Ioo (a : ℝ) ↑b), {
+    intros x hx y hy hxy,
+    apply hf,
+    exact mem_Ioo_mem_Icc hx,
+    exact mem_Ioo_mem_Icc hy,
+    exact hxy,
+  },
+  have hf_integrable : integrable_on f (set.Ioo (a : ℝ) ↑b), {
+    by_cases hab' : a = b, simp [hab'],
+    have hab' : a < b, exact lt_of_le_of_ne hab hab',
+    let blah := hf,
+    rw ← interval_eq_Icc (cast_le.mpr hab) at blah,
+    let foo := antitone_on.interval_integrable blah,
+    unfold interval_integrable at foo,
+    rcases foo with ⟨lfoo, rfoo⟩,
+    have : set.Ioc (a : ℝ) ↑b = (set.Ioo (a : ℝ) ↑b) ∪ {(b : ℝ)},
+    {
+      ext,
+      simp,
+      split,
+      rintros ⟨is_gt, is_lt⟩,
+      by_cases h : x = ↑b, simp [h],
+      right,
+      split,
+      exact is_gt,
+      exact lt_of_le_of_ne is_lt h,
+      intros h,
+      cases h,
+      rw h,
+      split,
+      exact cast_lt.mpr hab',
+      simp,
+      split,
+      exact h.left,
+      exact le_of_lt h.right,
+    },
+    rw this at lfoo,
+    exact integrable_on.left_of_union lfoo,
+    apply is_locally_finite_measure_of_is_finite_measure_on_compacts,
+  },
+
+  let g := (λ (i : ℝ), f (i + 1)),
+  have gequiv : ∀ (i : ℕ), g ↑i = f ↑(i + 1), simp,
+  conv {
+    to_lhs,
+    congr,
+    skip,
+    funext,
+    rw ← gequiv i,
+  },
+
+  have hg_integrable : integrable_on (λ (x : ℝ), g ↑⌊x⌋₊) (Ioo (a : ℝ) ↑b),
+  {
+    by_cases hab' : a = b, simp [hab'],
+    have hab' : a < b, exact lt_of_le_of_ne hab hab',
+    let h := (λ x : ℝ, ite (⌊x⌋₊ + 1 ≤ b) (f ↑(⌊x⌋₊ + 1)) (f ↑b)),
+    have hequiv : ∀ (x : ℝ), h x = ite (⌊x⌋₊ + 1 ≤ b) (f ↑(⌊x⌋₊ + 1)) (f ↑b), { intros x, by_cases hh : ⌊x⌋₊ + 1 ≤ b, simp [h, hh],},
+    have : eq_on h (λ x : ℝ, g ↑⌊x⌋₊) (set.Ioo (a : ℝ) ↑b),
+    {
+      unfold eq_on,
+      intros x hx,
+      have : ⌊x⌋₊ + 1 ≤ b, {
+        have foo : (⌊x⌋₊ : ℝ) + 1 ∈ set.Icc (a : ℝ) ↑b, exact somethingblah hx,
+        simp at foo,
+        have : (1 : ℝ) = ↑(1 : ℕ), simp,
+        rw this at foo,
+        rw ← cast_add at foo,
+        rw cast_le at foo,
+        rw cast_le at foo,
+        exact foo.right,
+      },
+      rw hequiv x,
+      rw gequiv ⌊x⌋₊,
+      simp [this],
+    },
+    refine integrable_on.congr_fun _ this (by simp),
+    have : set.Ioc (a : ℝ) ↑b =ᵐ[real.measure_space.volume] set.Ioo (a : ℝ) ↑b,
+    {
+      rw filter.eventually_eq_set,
+      rw filter.eventually_iff,
+      rw measure_theory.mem_ae_iff,
+      have : {x : ℝ | x ∈ set.Ioc (a : ℝ) ↑b ↔ x ∈ Ioo (a : ℝ) ↑b}ᶜ ⊆ {(b : ℝ)}, {
+        rw compl_subset_iff_union,
+        ext,simp,
+        by_cases hhh : x = ↑b,
+        simp [hhh],
+        right,
+        intros nope,
+        split,
+        intros xxx,
+        exact lt_of_le_of_ne xxx hhh,
+        intros xxx,
+        exact le_of_lt xxx,
+      },
+      exact measure_subset_null _ {(b : ℝ)} this real.volume_singleton,
+    },
+    refine integrable_on.congr_set_ae _ this.symm,
+    have : antitone_on h (set.Icc (a : ℝ) ↑b),
+    {
+      intros x hx y hy hxy,
+      rw hequiv x, rw hequiv y,
+      sorry,
+    },
+    rw ← interval_eq_Icc (cast_le.mpr hab) at this,
+    let blah := antitone_on.interval_integrable this,
+    unfold interval_integrable at blah,
+    rcases blah with ⟨lfoo, rfoo⟩,
+    exact lfoo,
+    apply is_locally_finite_measure_of_is_finite_measure_on_compacts,
+  },
+
+  have : ∀ (x : ℝ), x ∈ set.Icc (a : ℝ) ↑b → f ⌈x⌉₊ ≤ f x, {
+    intros x hx,
+    apply hf,
+    exact hx,
+    exact doodoo_ceil' hx,
+    exact le_ceil x,
+  },
+  conv {
+    to_lhs,
+    congr,
+    skip,
+    funext,
+    rw ← const_eq_integral_const_on_unit_interval i (g ↑i),
+  },
+  rw convert_finite_sum_to_interval_integral' hab,
+  have hab' : (a : ℝ) ≤ ↑b, exact cast_le.mpr hab,
+  rw interval_integral.integral_of_le hab',
+  rw interval_integral.integral_of_le hab',
+  rw integral_Ioc_eq_integral_Ioo,
+  rw integral_Ioc_eq_integral_Ioo,
+  apply set_integral_mono_on,
+  simp,
+  exact hg_integrable,
+  simp, exact hf_integrable,
+
+  simp,
+
+  intros x hx, conv { to_lhs, rw gequiv ⌊x⌋₊},
+  apply hf,
+  exact mem_Ioo_mem_Icc hx,
+  exact somethingblah hx,
+  apply le_of_lt,
+  exact nat.lt_succ_floor x,
+end
+
+
+-- lemma bdd_step_above
+-- {a : ℝ}
+-- {n : ℕ}
+-- {f : ℝ → ℝ}
+-- (ha : 0 ≤ a)
+-- (hf_mono_ev : ∀ (b b' : ℝ), a ≤ b → b ≤ b' → f b' ≤ f b)
+-- (hf_nonneg : ∀ (b : ℝ), 0 ≤ f b)
+-- :
+-- ∀ (x : ℝ), a ≤ ⌊x⌋₊ → f x ≤ f ↑⌊x⌋₊
+-- :=
+-- begin
+--   intros x hx,
+--   sorry,
+-- end
+
+
+
+-- lemma coi_antitone_integrable
+-- {a b : ℝ}
+-- {f : ℝ → ℝ}
+-- (hf : antitone_on f [a, b])
+-- :
+-- interval_integrable (coi f) real.measure_space.volume a b
+
+lemma mem_Icc_mem_Ici
+{a b : ℕ}
+{x : ℝ}
+:
+x ∈ set.Icc (a : ℝ) ↑b → x ∈ set.Ici (a : ℝ) :=
+begin
+  simp,
+  intros h _,
+  exact h,
+end
 
 lemma tail_sum_to_tail_integral
-{a l : ℝ}
+{a : ℕ}
+{l : ℝ}
 {f : ℝ → ℝ}
-(hf : tendsto (λ (b : ℝ), ∫ (x : ℝ) in a..b, f x) at_top (𝓝 l))
-(hf_mono : ∀ (b b' : ℝ), a ≤ b → b ≤ b' → f b' ≤ f b)
-(hf_nonneg : ∀ (b : ℝ), 0 ≤ f b)
+(hf : tendsto (λ (b : ℕ), ∫ (x : ℝ) in a..b, f x) at_top (𝓝 l))
+(hf_mono : antitone_on f (set.Ici (a : ℝ)))
+(hf_nonneg : ∀ (b : ℝ), b ∈ set.Ici (a : ℝ) → 0 ≤ f b)
 :
-(∑' (i : ℕ), (λ (j : ℕ), ite (a < j) (f ↑j) 0) i) ≤ l :=
+(∑' (i : ℕ), (λ (j : ℕ), ite (a + 1 ≤ j) (f ↑j) 0) i) ≤ l :=
 begin
-  by_cases summable (λ (j : ℕ), ite (a < j) (f ↑j) 0),
+  by_cases h : summable (λ (j : ℕ), ite (a + 1 ≤ j) (f ↑j) 0),
   obtain ⟨c, hc⟩ := h,
   rw has_sum.tsum_eq hc,
   rw has_sum_iff_tendsto_nat_of_nonneg at hc,
-  let hf' := real_tendsto_implies_nat_tendsto hf,
-  simp at hf',
-  refine tendsto_le' _ hc hf',
-  use max 100 ⌈a⌉₊,
+  simp at hf,
+  refine tendsto_le' _ hc hf,
+  use max 100 a,
   intros n hn,
-  conv {
-    to_lhs, congr, skip, funext,
-    rw ← const_eq_integral_const_on_unit_interval i (ite (a < ↑i) (f ↑i) 0),
-  },
-  rw convert_finite_sum_to_interval_integral,
+  rw sum_ite,
   simp,
-  have ff : interval_integrable (coi (λ (i : ℕ), ite (a < ↑i) (f ↑i) 0)) real.measure_space.volume 0 a, sorry,
-  have gg : interval_integrable (coi (λ (i : ℕ), ite (a < ↑i) (f ↑i) 0)) real.measure_space.volume a ↑n, sorry,
-  conv {
-    to_lhs,
-    rw ← interval_integral.integral_add_adjacent_intervals ff gg,
-  },
-  by_cases ha : a < 0, {
-    sorry,
-  },
-
-  push_neg at ha,
-  have : (∫ (x : ℝ) in 0..a, coi (λ (i : ℕ), ite (a < ↑i) (f ↑i) 0) x) = (∫ (x : ℝ) in 0..a, 0), {
-    apply interval_integral.integral_congr,
-    unfold eq_on,
-    intros x hx,
-    unfold interval at hx,
-    simp [ha] at hx,
-    unfold coi,
-    have : ↑⌊x⌋₊ ≤ a,
-      calc (⌊x⌋₊ : ℝ) ≤ x : floor_le hx.left
-        ... ≤ a : hx.right,
-    simp [this],
-    intros boo,
-    exfalso,
-    linarith,
+  have : filter (has_le.le (a + 1)) (finset.range n) = finset.Ico (a + 1) n,
+  {
+    ext d,
+    rw finset.mem_filter,
+    simp,
+    conv {to_lhs, rw and_comm},
   },
   rw this,
-  simp,
-  apply interval_integral.integral_mono,
-  calc
-    a ≤ ↑⌈a⌉₊ : le_ceil a
-      ... ≤ max 100 ↑⌈a⌉₊ : le_max_right 100 ↑⌈a⌉₊
-      ... = ↑(max 100 ⌈a⌉₊) : by simp [cast_max.symm]
-      ... ≤ ↑n : cast_le.mpr hn,
-  -- have gg : interval_integrable f real.measure_space.volume a ↑n, sorry,
-  -- refine interval_integral.integral_mono _ ff gg _,
+  obtain ⟨m, hm⟩ : ∃m, n = m + 1, sorry,
+  have : a ≤ m, sorry,
+  rw hm,
+  transitivity,
+  refine antitone_sum_le_integral this _,
+  intros x hx y hy hxy,
+  exact hf_mono (mem_Icc_mem_Ici hx) (mem_Icc_mem_Ici hy) hxy,
   sorry,
-  sorry,
-  unfold has_le.le,
-  intros x,
+  intros i,
+  by_cases hi : a + 1 ≤ i,
+  simp [hi],
+  refine hf_nonneg i _,
   simp,
-  funext,
-  funext,
-
-  intros x,
-  by_cases a < ↑x,
-  simp [h, hf_nonneg],
-  simp [h],
-  unfold tsum,
-  simp [h],
-  have : ∀ (b : ℝ), a ≤ b → 0 ≤ ∫ (x : ℝ) in a..b, f x, {
-    intros b hab,
-    apply interval_integral.integral_nonneg,
-    exact hab,
-    intros u hu,
-    exact hf_nonneg u,
-  },
+  calc a ≤ a + 1 : le_succ a ... ≤ i : hi,
+  simp [hi],
+  rw not_summable_eq_zero h,
+  sorry,
 end
 
 lemma goal (a r : ℝ) (ha : 0 < a) (hr : r < -1):
@@ -546,24 +761,6 @@ begin
   exact ha,
   calc 0 < a : ha ... < x : hx,
 end
-
-lemma abs_tsum_nonneg_eq_tsum
-{f : ℕ → ℝ}
-(hf : ∀ (n : ℕ), 0 ≤ f n)
-:
-|∑' (i : ℕ), f i| = ∑' (i : ℕ), f i
-:=
-begin
-  by_cases h : summable f,
-  obtain ⟨c, hc⟩ := h,
-  rw has_sum.tsum_eq hc,
-  apply abs_of_nonneg,
-  exact has_sum_mono has_sum_zero hc hf,
-  unfold tsum,
-  simp [h],
-end
-
-
 
 
 lemma tsum_sub_head_eq_tail'

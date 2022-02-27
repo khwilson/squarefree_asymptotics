@@ -37,26 +37,6 @@ The file has the following outline:
 
 namespace squarefree_sums
 
-
-
-
----------------------------------------------------------------------------------
---       DEALING WITH O MANIPULATION (MIGHT BE IN ASYMPTOTICS PACKAGE ALREADY)
----------------------------------------------------------------------------------
-
-/- Convenience notation for f = g + O(h) -/
--- {E : Type*} [has_norm E] {F : Type*} [has_norm F]
-def is_Ot {α : Type*} (f : α → ℝ) (g : α → ℝ) (h : α → ℝ) (l : filter α) : Prop :=
-∃ c : ℝ, asymptotics.is_O_with c (f - g) h l
-
---
-theorem is_Ot_transitive {α : Type*} (f : α → ℝ) (g : α → ℝ) (h : α → ℝ) (k : α → ℝ) (l : filter α) :
-is_Ot f g h l → is_Ot g k h l → is_Ot f k h l :=
-begin
-  sorry,
-end
-
-
 --------------------------------------------
 --           THEOREM 2: THE BIG BAD
 --------------------------------------------
