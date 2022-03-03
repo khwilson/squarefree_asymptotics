@@ -6,40 +6,66 @@ import tactic
 import measure_theory.integral.interval_integral
 import general
 import defs
+import summability
+import squarefree_rw
+import lemmas_on_asymptotics
 
 noncomputable theory
 open nat finset function filter
 open_locale classical topological_space interval big_operators filter asymptotics arithmetic_function
-
-/-
-The purpose of this file is to prove that μ^2 n = ∑ d^2 ∣ n, μ d. The basic outline
-is to show:
-  * μ^2 n = ite (squarefree n) 1 0
-  * μ^2 is multiplicative
-  * n ↦ ∑ d^2 ∣ n, μ d = (sμ * ζ) n where sμ n = ite (is_square n) (μ sqrt n) 0
-  * sμ is multiplicative
-  * Thus (sμ * ζ) is multiplicative
-  * μ^2 and (sμ * ζ) agree on prime powers, and thus
-  * μ^2 = (sμ * ζ)
-
-Along the way there are several lemmas we prove, including that μ is multiplicative
-(I couldn't find this in mathlib, strangely).
-
-The file has the following outline:
-  * General lemmas. These are lemmas that might exist in mathlib, but I couldn't find them
-  * Useful functions. Also some lemmas about specific values of those functions
-  * Multiplicative functions are equal if they are equal on prime powers.
-    - Surely this is somewhere in mathlib, but I couldn't find it!
-  * The various useful functions are multiplicative
-  * Writing (sμ * ζ) in an inductive fashion
-  * Finishing the proof
--/
 
 namespace squarefree_sums
 
 --------------------------------------------
 --           THEOREM 2: THE BIG BAD
 --------------------------------------------
+
+lemma step0 :
+∀ (x : ℕ),
+∑ n in finset.Icc 1 x, squarefree_nat n =
+∑ n in finset.Icc 1 x, ∑ d in finset.Icc 1 n, ite (d ^ 2 ∣ n) (μ d) 0
+:=
+begin
+  rw squarefree_nat_eq_tμ,
+  intros x,
+  congr,
+  funext n,
+  exact rw_tμ,
+end
+
+lemma step05 :
+∀ (x : ℕ),
+∑ n in finset.Icc 1 x, ∑ d in finset.Icc 1 n, ite (d ^ 2 ∣ n) (μ d) 0 =
+∑ n in finset.Icc 1 x, ∑ d in finset.Icc 1 x, ite (d ^ 2 ∣ n) (μ d) 0
+:=
+begin
+  intros x,
+  apply finset.sum_congr rfl,
+  intros y hy,
+  apply sum_subset,
+  rw subset_iff,
+  intros z hz,
+  simp at hy,
+  simp at hz,
+  simp,
+  split,
+  exact hz.left,
+  calc z ≤ y : hz.right ... ≤ x : hy.right,
+  intros z hz hz',
+  simp at hy,
+  simp at hz,
+  simp at hz',
+  by_cases h : z = 0, simp [h],
+  have h' : 1 ≤ z, linarith,
+  have h'' : ¬ (z ^ 2 ∣ y), {
+    apply nat.not_dvd_of_pos_of_lt (calc 0 < 1 : by linarith ... ≤ y : hy.left),
+    rw pow_two,
+    have : y = 1 * y, simp,
+    rw this,
+    exact mul_lt_mul' h' (hz' h') (by simp) (by linarith),
+  },
+  simp [h''],
+end
 
 def num_divides_upto (d : ℕ) (n : ℕ) := ((finset.Icc 1 n).filter (has_dvd.dvd d)).card
 
@@ -313,6 +339,20 @@ begin
   exact final_ineq x (le_of_lt hx),
 end
 
+lemma zero_dumb
+{n : ℕ}
+(hn : n ≠ 0)
+(hn' : n ≤ 1)
+:
+n = 1 :=
+begin
+  have : 0 ≤ n, simp,
+  have : 0 < n ∨ 0 = n, exact lt_or_eq_of_le this,
+  simp [hn.symm] at this,
+  have : (0 : ℕ).succ ≤ n, exact succ_le_iff.mpr this,
+  linarith,
+end
+
 lemma nat_div_sqrt_sqrt_eq_one
 {n : ℕ}
 :
@@ -382,7 +422,7 @@ begin
   simp at blah,
 
   -- OK, I have that it's ≤ 1 and that it ≠ 0 so why is this so hard :'-(
-    sorry,
+    exact zero_dumb le_half blah,
 end
 
 lemma step35 :
@@ -418,6 +458,48 @@ begin
   exact abs_mu_le_one,
 end
 
+lemma first_steps :
+∀ (x : ℕ),
+∑ n in finset.Icc 1 x, squarefree_nat n =
+(∑ d in finset.Icc 1 (sqrt x), ((μ d) * x.div (d^2)))
+:=
+begin
+  intros x,
+  transitivity, exact step0 x,
+  transitivity, exact step05 x,
+  transitivity, exact step1 x,
+  transitivity, exact step2 x,
+  transitivity, exact step3 x,
+  refl,
+end
+
+/- The casts will screw us up below -/
+lemma first_steps_R :
+∀ (x : ℕ),
+∑ n in finset.Icc 1 x, ((squarefree_nat n) : ℝ) =
+(∑ d in finset.Icc 1 (sqrt x), ((μ d) * x.div (d^2)))
+:=
+begin
+  intros x,
+  norm_cast,
+  exact first_steps x,
+end
+
+lemma first_steps' :
+is_Ot
+(λ x, (∑ n in finset.Icc 1 x, squarefree_nat n))
+(λ x, (∑ d in finset.Ico 1 (sqrt x), ((μ d) * x.div (d^2))))
+1
+at_top
+:=
+begin
+  conv {
+    congr,
+    funext,
+    rw first_steps_R x,
+  },
+  exact step35,
+end
 
 -- Converting from natural division to real division only picks up √x in error
 def μ_over_d2 (d : ℕ) := ↑(μ d) * ((d : ℝ) ^ 2)⁻¹
@@ -466,7 +548,10 @@ lemma dumbdumb {a b c d : ℝ} : |a * b - a * c * d| = |a| * |b - c * d| := by s
 
 lemma afaf {a b : ℝ} : |a| ≤ 1 ∧ |b| ≤ 1 → |a| * |b| ≤ 1 :=
 begin
-  sorry,
+  rintros ⟨ha, hb⟩,
+  have : (1 : ℝ) = 1 * 1, ring,
+  rw this,
+  exact mul_le_mul ha hb (abs_nonneg b) (by linarith),
 end
 
 lemma step4 :
@@ -532,66 +617,6 @@ lemma summable_μ_over_d2 : summable μ_over_d2 := by sorry
 def goal_func := (λ (n : ℕ), ↑n * μ_sum_at_2)
 
 def one_over_d2_from (d : ℕ) := (∑' i, ite (d ≤ i) ((i : ℝ) ^ 2)⁻¹ 0)
-
-lemma tsum_sub_head_eq_tail
-{n : ℕ}
-{f : ℕ → ℝ}
-:
-summable f → ∑' (i : ℕ), f i - ∑' (i : ℕ), ite (i ≤ n) (f i) 0 = ∑' (i : ℕ), ite (n < i) (f i) 0
-:= by sorry
-
-lemma tsum_sub_head_eq_tail'
-{n : ℕ}
-{f : ℕ → ℝ}
-:
-summable f → ∑' (i : ℕ), f i - ∑' (i : ℕ), ite (i < n) (f i) 0 = ∑' (i : ℕ), ite (n ≤ i) (f i) 0
-:=
-begin
-  intros hf,
-  induction n with n hn,
-  simp,
-  have : ∀ (i n : ℕ), ite (i < n.succ) (f i) 0 = ite (i ≤ n) (f i) 0,
-  {
-    intros i n,
-    by_cases h : i < n.succ,
-    simp [h],
-    rw lt_succ_iff at h,
-    simp [h],
-    simp [h],
-    push_neg at h,
-    rw succ_le_iff at h,
-    rw lt_iff_not_ge' at h,
-    simp [h],
-  },
-  conv {
-    to_lhs,
-    congr,
-    skip,
-    congr,
-    funext,
-    rw this i n,
-  },
-  rw tsum_sub_head_eq_tail hf,
-  have : ∀ (i n : ℕ), ite (n.succ ≤ i) (f i) 0 = ite (n < i) (f i) 0,
-  {
-    intros i n,
-    by_cases h : n.succ ≤ i,
-    simp [h],
-    rw succ_le_iff at h,
-    simp [h],
-    simp [h],
-    push_neg at h,
-    rw lt_succ_iff at h,
-    have : ¬ n < i, exact not_lt.mpr h,
-    simp [this],
-  },
-  conv {
-    to_rhs,
-    congr,
-    funext,
-    rw this i n,
-  },
-end
 
 lemma blarg
 {n : ℕ}
@@ -684,22 +709,6 @@ begin
 end
 
 
-lemma abs_tsum_nonneg_eq_tsum
-{f : ℕ → ℝ}
-(hf : ∀ (n : ℕ), 0 ≤ f n)
-:
-|∑' (i : ℕ), f i| = ∑' (i : ℕ), f i
-:=
-begin
-  by_cases h : summable f,
-  obtain ⟨c, hc⟩ := h,
-  rw has_sum.tsum_eq hc,
-  apply abs_of_nonneg,
-  exact has_sum_mono has_sum_zero hc hf,
-  unfold tsum,
-  simp [h],
-end
-
 lemma step6 :
 asymptotics.is_O
 (λ (n : ℕ), ↑n * one_over_d2_from (sqrt n))
@@ -726,6 +735,7 @@ begin
   sorry,
 end
 
+/- Putting all the steps together -/
 theorem bigbad :
 is_Ot
 (λ (n : ℕ), ∑ (i : ℕ) in finset.Icc 1 n, squarefree_nat i)
@@ -734,6 +744,8 @@ goal_func
 at_top
 :=
 begin
+  refine is_Ot_trans_bigger_error_right _ step5' step6,
+  let foo := is_Ot_trans_same_error first_steps',
 
 end
 

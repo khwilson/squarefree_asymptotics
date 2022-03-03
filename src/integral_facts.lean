@@ -22,10 +22,6 @@ begin
   simp,
 end
 
-def coi (f : ℕ → ℝ) := (λ (x : ℝ), f (⌊x⌋₊))
-
-def coi' (f : ℝ → ℝ) := (λ (x : ℝ), f (⌊x⌋₊))
-
 instance : floor_semiring ℝ :=
 { floor := λ a, ⌊a⌋.to_nat,
   ceil := λ a, ⌈a⌉.to_nat,
@@ -52,58 +48,6 @@ begin
   exact bb,
   push_neg,
   exact aa,
-end
-
-lemma doodoo (k : ℕ) : ∀ (x : ℝ), x ∈ set.Ioo (k : ℝ) (↑k + 1) → ⌊x⌋₊ = k :=
-begin
-  intros x hx,
-  simp at hx,
-  have zero_le_x : 0 ≤ x, {
-    have : 0 ≤ k, linarith,
-    calc (0 : ℝ) ≤ ↑k : by simp ... ≤ x : by simp [hx.left, le_of_lt],
-  },
-  have is_le : ⌊x⌋₊ ≤ k, {
-    rw ← lt_succ_iff,
-    have : (⌊x⌋₊ : ℝ) < k.succ, calc ↑⌊x⌋₊ ≤ x : nat.floor_le zero_le_x ... < k.succ : by simp [hx.right],
-    rw cast_lt at this,
-    exact this,
-  },
-  have : ↑k ≤ x, exact le_of_lt hx.left,
-  have is_ge : k ≤ ⌊x⌋₊, exact nat.le_floor this,
-  linarith [is_le, is_ge],
-end
-
-lemma fafa (n : ℕ) (f : ℕ → ℝ) :
-∫ (x : ℝ) in ↑n..↑n + 1, f n
-=
-∫ (x : ℝ) in ↑n..↑n + 1, (coi f) x
-:=
-begin
-  apply interval_integral.integral_congr_ae',
-  rw filter.eventually_iff,
-  rw measure_theory.mem_ae_iff,
-  have : {x : ℝ | x ∈ set.Ioc (n : ℝ) (↑n + 1) → f n = coi f x}ᶜ ⊆ {↑n + 1},
-  {
-    rw compl_subset_iff_union,
-    ext,
-    simp,
-    by_cases x = n + 1,
-    simp [h],
-    simp [h],
-    intros ha hb,
-    let foooo := lt_or_eq_of_le hb,
-    simp [h] at foooo,
-    rw ← nat.cast_one at foooo,
-    rw ← nat.cast_add at foooo,
-    unfold coi,
-    have fdfdfdfd : 0 ≤ x, exact le_of_lt (calc (0 : ℝ) ≤ n : by simp ... < x : ha),
-    have : n ≤ ⌊x⌋₊, exact nat.le_floor (le_of_lt ha),
-    have : ⌊x⌋₊ < ↑n + 1, simp [(nat.floor_lt fdfdfdfd).mpr foooo],
-    have : ⌊x⌋₊ = n, linarith,
-    rw this,
-  },
-  exact measure_subset_null _ {↑n + 1} this real.volume_singleton,
-  simp,
 end
 
 lemma real_constant_on_interval_integrable
@@ -154,38 +98,6 @@ begin
   unfold set.eq_on,
   intros x hx,
   exact (hc x hx).symm,
-end
-
-lemma convert_finite_sum_to_interval_integral (n : ℕ) (f : ℕ → ℝ) :
-∑ (i : ℕ) in finset.range n,
-∫ (x : ℝ) in ↑i..↑i + 1,
-f i
-=
-∫ (x : ℝ) in 0..n, (coi f) x
-:=
-begin
-  conv {
-    to_lhs,
-    congr,
-    skip,
-    funext,
-    rw fafa i f,
-  },
-  -- Problem: There are a lot of lemmas that show that if a function is constant
-  -- on all of ℝ then the function is integrable, but this function is constant _only_
-  -- on the interval of integration. This is messing up the parser.
-  have hint : ∀ (k : ℕ), k < n → interval_integrable (coi f) measure_theory.measure_space.volume (k : ℝ) ((k : ℝ) + 1),
-  {
-    intros k hk,
-    have : ∃c, ∀ (x : ℝ), x ∈ set.Ioo (k : ℝ) (↑k + 1) → (coi f) x = c, {
-      use f k,
-      intros x hx,
-      unfold coi,
-      rw doodoo k x hx,
-    },
-    exact real_constant_on_interval_integrable k (k + 1) (by linarith) (coi f) this,
-  },
-  exact interval_integral.sum_integral_adjacent_intervals hint,
 end
 
 lemma interval_integrable.trans_iterate'
@@ -276,7 +188,7 @@ begin
       use f k,
       intros x hx,
       simp [g],
-      rw doodoo k x hx,
+      rw floor_of_unit_Ioo_val hx,
     },
     exact real_constant_on_interval_integrable k (k + 1) (by linarith) g this,
   },
@@ -298,7 +210,7 @@ begin
     simp,
     unfold eq_on,
     intros x hx,
-    rw doodoo i x hx,
+    rw floor_of_unit_Ioo_val hx,
   },
   conv {
     to_lhs,
@@ -308,39 +220,6 @@ begin
     rw this i,
   },
   exact sum_integral_adjacent_intervals'' hmn hint,
-end
-
-lemma doodoo'
-{a b : ℕ}
-{x : ℝ}
-(hx : x ∈ set.Icc (a : ℝ) ↑b)
-:
-↑⌊x⌋₊ ∈ set.Icc (a : ℝ) ↑b
-:=
-begin
-  simp at hx,
-  have : 0 ≤ x, calc (0 : ℝ) ≤ ↑a : by simp ... ≤ x : hx.left,
-  simp,
-  split,
-  exact le_floor hx.left,
-  have : (⌊x⌋₊ : ℝ) ≤ ↑b, calc ↑⌊x⌋₊ ≤ x : floor_le this ... ≤ ↑b : hx.right,
-  exact cast_le.mp this,
-end
-
-lemma doodoo_ceil'
-{a b : ℕ}
-{x : ℝ}
-(hx : x ∈ set.Icc (a : ℝ) ↑b)
-:
-↑⌈x⌉₊ ∈ set.Icc (a : ℝ) ↑b
-:=
-begin
-  simp at hx,
-  simp,
-  split,
-  have : ↑a ≤ (⌈x⌉₊ : ℝ), calc ↑a ≤ x : hx.left ... ≤ ↑⌈x⌉₊ : le_ceil x,
-  exact cast_le.mp this,
-  exact hx.right,
 end
 
 lemma antitone_integral_le_sum
@@ -354,7 +233,7 @@ begin
   have : ∀ (x : ℝ), x ∈ set.Icc (a : ℝ) ↑b → f x ≤ f ⌊x⌋₊, {
     intros x hx,
     apply hf,
-    exact doodoo' hx,
+    exact floor_of_Icc_mem_Icc hx,
     exact hx,
     have : ↑a ≤ x, {
       simp at hx,
@@ -376,8 +255,8 @@ begin
     rw cast_le,
     exact floor_mono hcd,
   },
-  have u2 : ↑⌊c⌋₊ ∈ set.Icc (a : ℝ) ↑b, exact doodoo' hc,
-  have u3 : ↑⌊d⌋₊ ∈ set.Icc (a : ℝ) ↑b, exact doodoo' hd,
+  have u2 : ↑⌊c⌋₊ ∈ set.Icc (a : ℝ) ↑b, exact floor_of_Icc_mem_Icc hc,
+  have u3 : ↑⌊d⌋₊ ∈ set.Icc (a : ℝ) ↑b, exact floor_of_Icc_mem_Icc hd,
   exact hf u2 u3 u1,
   conv {
     to_rhs,
@@ -387,52 +266,6 @@ begin
     rw ← const_eq_integral_const_on_unit_interval x (f ↑x),
   },
   rw convert_finite_sum_to_interval_integral' hab,
-end
-
-lemma shift_sum
-{a b d : ℕ}
-{f : ℕ → ℝ}
-:
-∑ (i : ℕ) in finset.Ico (a + d) (b + d), f i = ∑ (i : ℕ) in finset.Ico a b, f (i + d)
-:=
-begin
-  apply finset.sum_bij (λ (i : ℕ) (hi : i ∈ finset.Ico (a + d) (b + d)), i - d),
-  intros m hm, simp, simp at hm, split,
-  let blah := nat.sub_le_sub_right hm.left d, rw nat.add_sub_cancel at blah, exact blah,
-  have : m - d + d < b + d → m - d < b, simp,
-  apply this,
-  have : d ≤ m, calc d ≤ a + d : by simp ... ≤ m : hm.left,
-  rw nat.sub_add_cancel this,
-  exact hm.right,
-
-  intros m hm, simp, congr, symmetry, apply nat.sub_add_cancel, simp at hm, calc d ≤ a + d : by simp ... ≤ m : hm.left,
-
-  intros m n hm hn, simp, simp at hm, simp at hn,
-  have : d ≤ m, calc d ≤ a + d : by simp ... ≤ m : hm.left,
-  rw nat.sub_eq_iff_eq_add this,
-  have : d ≤ n, calc d ≤ a + d : by simp ... ≤ n : hn.left,
-  rw nat.sub_add_cancel this,
-  intros h, exact h,
-
-  intros m hm, use m + d,
-  have : m + d ∈ finset.Ico (a + d) (b + d), {
-    simp at hm,
-    simp [hm],
-  },
-  use this,
-  simp,
-end
-
-lemma mem_Ioo_mem_Icc
-{a b x : ℝ}
-:
-x ∈ Ioo a b → x ∈ Icc a b :=
-begin
-  simp,
-  intros is_gt is_lt,
-  split,
-  exact le_of_lt is_gt,
-  exact le_of_lt is_lt,
 end
 
 lemma somethingblah
@@ -588,7 +421,7 @@ begin
     intros x hx,
     apply hf,
     exact hx,
-    exact doodoo_ceil' hx,
+    exact ceil_of_Icc_mem_Icc hx,
     exact le_ceil x,
   },
   conv {
@@ -619,43 +452,55 @@ begin
   exact nat.lt_succ_floor x,
 end
 
-
--- lemma bdd_step_above
--- {a : ℝ}
--- {n : ℕ}
--- {f : ℝ → ℝ}
--- (ha : 0 ≤ a)
--- (hf_mono_ev : ∀ (b b' : ℝ), a ≤ b → b ≤ b' → f b' ≤ f b)
--- (hf_nonneg : ∀ (b : ℝ), 0 ≤ f b)
--- :
--- ∀ (x : ℝ), a ≤ ⌊x⌋₊ → f x ≤ f ↑⌊x⌋₊
--- :=
--- begin
---   intros x hx,
---   sorry,
--- end
-
-
-
--- lemma coi_antitone_integrable
--- {a b : ℝ}
--- {f : ℝ → ℝ}
--- (hf : antitone_on f [a, b])
--- :
--- interval_integrable (coi f) real.measure_space.volume a b
-
-lemma mem_Icc_mem_Ici
-{a b : ℕ}
-{x : ℝ}
+lemma blahblah
+{a b c d : ℝ}
+{f : ℝ → ℝ}
+(hf : interval_integrable f real.measure_space.volume a b)
+(hac : a ≤ c)
+(hcd : c ≤ d)
+(hdb : d ≤ b)
 :
-x ∈ set.Icc (a : ℝ) ↑b → x ∈ set.Ici (a : ℝ) :=
+interval_integrable f real.measure_space.volume c d
+:=
 begin
-  simp,
-  intros h _,
-  exact h,
+  have hab : a ≤ b, calc a ≤ c : hac ... ≤ d : hcd ... ≤ b : hdb,
+  unfold interval_integrable,
+  unfold interval_integrable at hf,
+  simp [hcd],
+  have : set.Ioc c d ⊆ set.Ioc a b, {
+    unfold has_subset.subset,
+    unfold set.subset,
+    intros x hx,
+    simp at hx,
+    simp,
+    split,
+    calc a ≤ c : hac ... < x : hx.left,
+    calc x ≤ d : hx.right ... ≤ b : hdb,
+  },
+  exact integrable_on.mono_set hf.left this,
 end
 
-lemma tail_sum_to_tail_integral
+lemma blech
+{a m : ℕ}
+{f : ℝ → ℝ}
+(ham : a ≤ m)
+(hf_nonneg : ∀ (b : ℝ), b ∈ set.Ici (a : ℝ) → 0 ≤ f b)
+:
+{x : ℝ | x ∈ set.Icc (m : ℝ) (↑m + 1) → 0 ≤ f x} = univ
+:=
+begin
+  simp,
+  apply eq_univ_of_forall,
+  intros x,
+  simp,
+  intros hx hx',
+  have : x ∈ set.Ici (a : ℝ),
+    simp,
+    calc (a : ℝ) ≤ ↑m : cast_le.mpr ham ... ≤ x : hx,
+  exact hf_nonneg x this,
+end
+
+lemma tail_sum_le_tail_integral
 {a : ℕ}
 {l : ℝ}
 {f : ℝ → ℝ}
@@ -671,7 +516,7 @@ begin
   rw has_sum_iff_tendsto_nat_of_nonneg at hc,
   simp at hf,
   refine tendsto_le' _ hc hf,
-  use max 100 a,
+  use a + 100,
   intros n hn,
   rw sum_ite,
   simp,
@@ -683,14 +528,69 @@ begin
     conv {to_lhs, rw and_comm},
   },
   rw this,
-  obtain ⟨m, hm⟩ : ∃m, n = m + 1, sorry,
-  have : a ≤ m, sorry,
+  obtain ⟨m, hm⟩ : ∃m, n = m + 1, {
+    use n - 1,
+    exact (nat.sub_add_cancel (calc 1 ≤ 100 : by linarith ... ≤ a + 100 : by linarith ... ≤ n : hn)).symm,
+  },
+  have : a ≤ m, {
+    have : a + 1 ≤ m + 1, {
+      rw ← hm,
+      calc a + 1 ≤ a + 100 : by linarith ... ≤ n : hn,
+    },
+    linarith,
+  },
   rw hm,
   transitivity,
   refine antitone_sum_le_integral this _,
   intros x hx y hy hxy,
   exact hf_mono (mem_Icc_mem_Ici hx) (mem_Icc_mem_Ici hy) hxy,
-  sorry,
+
+  have hf_mono_local: antitone_on f [(a : ℝ), ↑m + 1], {
+    have : (n : ℝ) = (m : ℝ) + 1, simp [hm],
+    rw ← this,
+    rw interval_eq_Icc (cast_le.mpr (calc a ≤ a + 100 : by linarith ... ≤ n : hn)),
+    intros x hx y hy hxy,
+    exact hf_mono (mem_Icc_mem_Ici hx) (mem_Icc_mem_Ici hy) hxy,
+  },
+  have uu: interval_integrable f real.measure_space.volume ↑a (↑m + 1), {
+    exact antitone_on.interval_integrable hf_mono_local,
+  },
+
+  have hf_mono_local: antitone_on f [(a : ℝ), ↑m], {
+    rw interval_eq_Icc (cast_le.mpr this),
+    intros x hx y hy hxy,
+    exact hf_mono (mem_Icc_mem_Ici hx) (mem_Icc_mem_Ici hy) hxy,
+  },
+  have ul: interval_integrable f real.measure_space.volume ↑a ↑m, {
+    exact antitone_on.interval_integrable hf_mono_local,
+  },
+
+  have hf_mono_local: antitone_on f [(m : ℝ), ↑m + 1], {
+    rw interval_eq_Icc (calc (m : ℝ) ≤ ↑m + 1 : by simp),
+    intros x hx y hy hxy,
+    have ut : (m : ℝ) + 1 = ↑(m + 1), simp,
+    rw ut at hx,
+    rw ut at hy,
+    exact hf_mono (mem_Icc_mem_Ici' hx this) (mem_Icc_mem_Ici' hy this) hxy,
+  },
+  have ur: interval_integrable f real.measure_space.volume ↑m (↑m + 1), {
+    exact antitone_on.interval_integrable hf_mono_local,
+  },
+
+  have aa : interval_integral f ↑a ↑(m + 1) real.measure_space.volume = interval_integral f ↑a ↑m real.measure_space.volume + interval_integral f ↑m ↑(m + 1) real.measure_space.volume, {
+    symmetry,
+    refine interval_integral.integral_add_adjacent_intervals ul ur,
+  },
+  rw aa,
+  simp,
+  apply interval_integral.integral_nonneg_of_ae_restrict,
+  simp,
+  unfold filter.eventually_le,
+  simp,
+  rw filter.eventually_inf_principal,
+  rw filter.eventually_iff,
+  rw blech this hf_nonneg,
+  simp,
   intros i,
   by_cases hi : a + 1 ≤ i,
   simp [hi],
@@ -760,17 +660,6 @@ begin
   apply not_mem_interval_of_lt,
   exact ha,
   calc 0 < a : ha ... < x : hx,
-end
-
-
-lemma tsum_sub_head_eq_tail'
-{b : ℝ}
-{f : ℝ → ℝ}
-:
-summable (λ (i : ℕ), f ↑i) → ∑' (i : ℕ), f ↑i - ∑' (i : ℕ), ite (↑i ≤ b) (f i) 0 = ∑' (i : ℕ), ite (b < ↑i) (f ↑i) 0
-:=
-begin
-  sorry,
 end
 
 lemma goal2

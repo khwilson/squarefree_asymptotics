@@ -367,4 +367,158 @@ begin
   rw this,
 end
 
+lemma mem_Icc_mem_Ici
+{a b : ℕ}
+{x : ℝ}
+:
+x ∈ set.Icc (a : ℝ) ↑b → x ∈ set.Ici (a : ℝ) :=
+begin
+  simp,
+  intros h _,
+  exact h,
+end
+
+lemma mem_Icc_mem_Ici'
+{a b c : ℕ}
+{x : ℝ}
+:
+x ∈ set.Icc (a : ℝ) ↑b → c ≤ a → x ∈ set.Ici (c : ℝ) :=
+begin
+  simp,
+  intros h _ h',
+  calc (c : ℝ) ≤ ↑a : cast_le.mpr h' ... ≤ x : h,
+end
+
+
+lemma mem_Ico_mem_Ici
+{a b : ℕ}
+{x : ℝ}
+:
+x ∈ set.Ico (a : ℝ) ↑b → x ∈ set.Ici (a : ℝ) :=
+begin
+  simp,
+  intros h _,
+  exact h,
+end
+
+lemma mem_Ioc_mem_Ioi
+{a b : ℕ}
+{x : ℝ}
+:
+x ∈ set.Ioc (a : ℝ) ↑b → x ∈ set.Ioi (a : ℝ) :=
+begin
+  simp,
+  intros h _,
+  exact h,
+end
+
+lemma mem_Ioo_mem_Ioi
+{a b : ℕ}
+{x : ℝ}
+:
+x ∈ set.Ioo (a : ℝ) ↑b → x ∈ set.Ioi (a : ℝ) :=
+begin
+  simp,
+  intros h _,
+  exact h,
+end
+
+lemma mem_Ico_mem_Icc
+{a b : ℕ}
+{x : ℝ}
+:
+x ∈ set.Ico (a : ℝ) ↑b → x ∈ set.Icc (a : ℝ) ↑b :=
+begin
+  simp,
+  intros h h',
+  exact ⟨h, le_of_lt h'⟩,
+end
+
+lemma mem_Ioo_mem_Icc
+{a b : ℕ}
+{x : ℝ}
+:
+x ∈ set.Ioo (a : ℝ) ↑b → x ∈ set.Icc (a : ℝ) ↑b :=
+begin
+  simp,
+  intros h h',
+  exact ⟨le_of_lt h, le_of_lt h'⟩,
+end
+
+lemma mem_Ioo_mem_Ioc
+{a b : ℕ}
+{x : ℝ}
+:
+x ∈ set.Ioo (a : ℝ) ↑b → x ∈ set.Ioc (a : ℝ) ↑b :=
+begin
+  simp,
+  intros h h',
+  exact ⟨h, le_of_lt h'⟩,
+end
+
+lemma mem_Ioo_mem_Ico
+{a b : ℕ}
+{x : ℝ}
+:
+x ∈ set.Ioo (a : ℝ) ↑b → x ∈ set.Ico (a : ℝ) ↑b :=
+begin
+  simp,
+  intros h h',
+  exact ⟨le_of_lt h, h'⟩,
+end
+
+lemma ceil_of_Icc_mem_Icc
+{a b : ℕ}
+{x : ℝ}
+(hx : x ∈ set.Icc (a : ℝ) ↑b)
+:
+↑⌈x⌉₊ ∈ set.Icc (a : ℝ) ↑b
+:=
+begin
+  simp at hx,
+  simp,
+  split,
+  have : ↑a ≤ (⌈x⌉₊ : ℝ), calc ↑a ≤ x : hx.left ... ≤ ↑⌈x⌉₊ : le_ceil x,
+  exact cast_le.mp this,
+  exact hx.right,
+end
+
+lemma floor_of_Icc_mem_Icc
+{a b : ℕ} {x : ℝ}
+(hx : x ∈ set.Icc (a : ℝ) ↑b)
+:
+↑⌊x⌋₊ ∈ set.Icc (a : ℝ) ↑b
+:=
+begin
+  simp at hx,
+  have : 0 ≤ x, calc (0 : ℝ) ≤ ↑a : by simp ... ≤ x : hx.left,
+  simp,
+  split,
+  exact le_floor hx.left,
+  have : (⌊x⌋₊ : ℝ) ≤ ↑b, calc ↑⌊x⌋₊ ≤ x : floor_le this ... ≤ ↑b : hx.right,
+  exact cast_le.mp this,
+end
+
+lemma floor_of_unit_Ioo_val
+{k : ℕ} {x : ℝ} : x ∈ set.Ioo (k : ℝ) (↑k + 1) → ⌊x⌋₊ = k :=
+begin
+  intros hx,
+  simp at hx,
+  have zero_le_x : 0 ≤ x, {
+    have : 0 ≤ k, linarith,
+    calc (0 : ℝ) ≤ ↑k : by simp ... ≤ x : by simp [hx.left, le_of_lt],
+  },
+  have is_le : ⌊x⌋₊ ≤ k, {
+    rw ← lt_succ_iff,
+    have : (⌊x⌋₊ : ℝ) < k.succ, calc ↑⌊x⌋₊ ≤ x : nat.floor_le zero_le_x ... < k.succ : by simp [hx.right],
+    rw cast_lt at this,
+    exact this,
+  },
+  have : ↑k ≤ x, exact le_of_lt hx.left,
+  have is_ge : k ≤ ⌊x⌋₊, exact nat.le_floor this,
+  linarith [is_le, is_ge],
+end
+
+
+
 end squarefree_sums

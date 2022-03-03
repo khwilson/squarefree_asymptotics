@@ -124,33 +124,41 @@ begin
 end
 
 lemma summable_of_eventually_zero
+{N : ℕ}
 {f : ℕ → ℝ}
-(hf : ∃ (N : ℕ), ∀ (n : ℕ), N ≤ n → f n = 0)
+(hf : ∀ (n : ℕ), N ≤ n → f n = 0)
 :
 summable f
 :=
 begin
-  cases hf with N hN,
-  rw summable_iff_vanishing,
-  intros s hs,
-  use finset.range N,
-  intros t ht,
-  have aa : t = t, exact rfl,
-  have bb : ∀ (x : ℕ), x ∈ t → f x = 0,
+  have : ∀ (b : ℕ), b ∉ finset.Ico 0 N → f b = 0,
   {
-    intros x hx,
-    have : N ≤ x, {
-      rw finset.disjoint_iff_ne at ht,
-      by_contradiction H,
-      push_neg at H,
-      exact ht x hx x (by simp [H]) rfl,
-    },
-    exact hN x this,
+    intros b hb,
+    simp at hb,
+    exact hf b hb,
   },
-  rw finset.sum_congr aa bb,
-  simp,
-  exact mem_of_mem_nhds hs,
+  exact summable_of_ne_finset_zero this,
 end
+
+lemma tsum_of_eventually_zero_eq_finset_sum
+{N : ℕ}
+{f : ℕ → ℝ}
+(hf : ∀ (n : ℕ), N ≤ n → f n = 0)
+:
+∑' i, f i = ∑ (i : ℕ) in finset.Ico 0 N, f i
+:=
+begin
+  obtain ⟨c, hc⟩ := summable_of_eventually_zero hf,
+  rw has_sum.tsum_eq hc,
+  have : ∀ (b : ℕ), b ∉ finset.Ico 0 N → f b = 0,
+  {
+    intros b hb,
+    simp at hb,
+    exact hf b hb,
+  },
+  exact has_sum.unique hc (has_sum_sum_of_ne_finset_zero this),
+end
+
 
 lemma head_summable
 {n : ℕ}
@@ -159,13 +167,39 @@ lemma head_summable
 summable (λ (i : ℕ), ite (i ≤ n) (f i) 0)
 :=
 begin
-  apply summable_of_eventually_zero,
-  use n + 1,
+  apply @summable_of_eventually_zero (n + 1),
   intros n' hn',
   have : ¬ n' ≤ n,
     by_contradiction H,
     linarith,
   simp [this],
+end
+
+lemma head_sum_eq
+{n : ℕ}
+{f : ℕ → ℝ}
+:
+∑' (i : ℕ), ite (i ≤ n) (f i) 0 = ∑ (i : ℕ) in finset.Icc 0 n, f i
+:=
+begin
+  have : ∀ (m : ℕ), n + 1 ≤ m → (λ i, ite (i ≤ n) (f i) 0) m = 0, {
+    intros m hm,
+    simp,
+    intros xf,
+    exfalso,
+    linarith,
+  },
+  rw tsum_of_eventually_zero_eq_finset_sum this,
+  have : finset.Ico 0 (n + 1) = finset.Icc 0 n, {
+    ext x,
+    simp,
+    exact lt_succ_iff,
+  },
+  rw this,
+  refine sum_congr rfl _,
+  intros x hx,
+  simp at hx,
+  simp [hx],
 end
 
 lemma finite_diff_summable_aux
@@ -179,13 +213,13 @@ begin
   intros hf,
   have : summable (λ (b : ℕ), g b - f b),
   {
-    apply summable_of_eventually_zero,
     cases hfg with s hs,
     by_cases s = ∅,
+    apply @summable_of_eventually_zero 1,
     simp [h] at hs,
-    use 1, intros i hi, simp [hs i],
+    intros i hi, simp [hs i],
     have : s.nonempty, exact nonempty_iff_ne_empty.mpr h,
-    use (max' s this) + 1,
+    apply @summable_of_eventually_zero ((max' s this) + 1),
     intros i hi,
     have : i ∉ s, exact not_mem_if_gt_max' (calc s.max' this < s.max' this + 1 : by linarith ... ≤ i : hi),
     simp [hs i this],
@@ -243,13 +277,11 @@ lemma head_summable'
 summable (λ (i : ℕ), ite (i < n) (f i) 0)
 :=
 begin
-  apply summable_of_eventually_zero,
-  use n + 1,
+  apply @summable_of_eventually_zero n,
   intros n' hn',
-  have : ¬ n' < n,
-    by_contradiction H,
-    linarith,
-  simp [this],
+  simp [hn'],
+  intros hn'',
+  linarith,
 end
 
 lemma head_summable_R'
@@ -276,8 +308,7 @@ lemma single_summable
 summable (λ (i : ℕ), ite (i = n) (f i) 0)
 :=
 begin
-  apply summable_of_eventually_zero,
-  use n + 1,
+  apply @summable_of_eventually_zero (n + 1),
   intros n' hn',
   have : n' ≠ n,
     by_contradiction H,
@@ -400,6 +431,25 @@ begin
       exact single_summable,
 end
 
+lemma tsum_sub_head_eq_tail'
+{b : ℝ}
+{f : ℝ → ℝ}
+:
+summable (λ (i : ℕ), f ↑i) → ∑' (i : ℕ), f ↑i - ∑' (i : ℕ), ite (↑i ≤ b) (f i) 0 = ∑' (i : ℕ), ite (b < ↑i) (f ↑i) 0
+:=
+begin
+  let g : ℕ → ℝ := (λ n, f ↑n),
+  have gequiv : g = (λ n, f ↑n), sorry,
+  have gequiv' : ∀ (n : ℕ), g n = f ↑n, sorry,
+  rw ← gequiv,
+  intros hg,
+  conv {
+    congr,congr,skip,congr,funext, rw ← gequiv' i, skip, congr, funext, rw ← gequiv' i,
+  },
+  exact tsum_sub_head_eq_tail hg,
+  sorry,
+end
+
 lemma not_summable_eq_zero
 {f : ℕ → ℝ}
 (hf : ¬ summable f)
@@ -410,5 +460,40 @@ begin
   unfold tsum,
   simp [hf],
 end
+
+lemma shift_sum
+{a b d : ℕ}
+{f : ℕ → ℝ}
+:
+∑ (i : ℕ) in finset.Ico (a + d) (b + d), f i = ∑ (i : ℕ) in finset.Ico a b, f (i + d)
+:=
+begin
+  apply finset.sum_bij (λ (i : ℕ) (hi : i ∈ finset.Ico (a + d) (b + d)), i - d),
+  intros m hm, simp, simp at hm, split,
+  let blah := nat.sub_le_sub_right hm.left d, rw nat.add_sub_cancel at blah, exact blah,
+  have : m - d + d < b + d → m - d < b, simp,
+  apply this,
+  have : d ≤ m, calc d ≤ a + d : by simp ... ≤ m : hm.left,
+  rw nat.sub_add_cancel this,
+  exact hm.right,
+
+  intros m hm, simp, congr, symmetry, apply nat.sub_add_cancel, simp at hm, calc d ≤ a + d : by simp ... ≤ m : hm.left,
+
+  intros m n hm hn, simp, simp at hm, simp at hn,
+  have : d ≤ m, calc d ≤ a + d : by simp ... ≤ m : hm.left,
+  rw nat.sub_eq_iff_eq_add this,
+  have : d ≤ n, calc d ≤ a + d : by simp ... ≤ n : hn.left,
+  rw nat.sub_add_cancel this,
+  intros h, exact h,
+
+  intros m hm, use m + d,
+  have : m + d ∈ finset.Ico (a + d) (b + d), {
+    simp at hm,
+    simp [hm],
+  },
+  use this,
+  simp,
+end
+
 
 end squarefree_sums
