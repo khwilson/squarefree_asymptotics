@@ -146,12 +146,15 @@ begin
   exact is_Ot_trans_same_error hfg (is_Ot_bigger_error hgk hhh'),
 end
 
--- If f = g + O(h) and g = k + O(h') then f = k + O(h + h')
-theorem is_Ot_transitive_diff {α : Type*} (f : α → ℝ) (g : α → ℝ) (h : α → ℝ) (h' : α → ℝ) (k : α → ℝ) (l : filter α) :
-is_Ot f g h l → is_Ot g k h' l → is_Ot f k (h + h') l :=
+lemma is_Ot.congr
+(hfg : f = g) :
+is_Ot f g h l
+:=
 begin
-  sorry,
+  unfold is_Ot,
+  use 0,
+  unfold is_O_with,
+  simp [hfg],
 end
-
 
 end squarefree_sums

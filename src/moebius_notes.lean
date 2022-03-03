@@ -9,6 +9,7 @@ import defs
 import summability
 import squarefree_rw
 import lemmas_on_asymptotics
+import integral_facts
 
 noncomputable theory
 open nat finset function filter
@@ -510,41 +511,19 @@ def sum_μ_times_floor_n_over_d2 (n : ℕ) :=
 def sum_μ_times_n_over_d2 (n : ℕ) :=
 ∑ d in finset.Ico 1 (sqrt n), ↑n * μ_over_d2 d -- ↑(μ d) * ↑n * ((d : ℝ) ^ 2)⁻¹
 
--- How do I use to_floor_semiring?
-instance : floor_semiring ℝ :=
-{ floor := λ a, ⌊a⌋.to_nat,
-  ceil := λ a, ⌈a⌉.to_nat,
-  floor_of_neg := λ a ha, int.to_nat_of_nonpos (int.floor_nonpos ha.le),
-  gc_floor := λ a n ha, by { rw [int.le_to_nat_iff (int.floor_nonneg.2 ha), int.le_floor], refl },
-  gc_ceil := λ a n, by { rw [int.to_nat_le, int.ceil_le], refl } }
-
-lemma floor_off_by_le_one {a b : ℕ} (ha : 0 < a) :
-|(b : ℝ) / a - ↑(b / a)| ≤ 1 :=
+lemma dumbdumb {a b c d : ℝ} : |a * b - c * (a * d)| = |a| * |b - c * d| :=
 begin
-  by_cases b = 0,
-  simp [h],
-  have zero_lt_b : 0 < b, exact zero_lt_iff.mpr h,
-  by_cases b < a,
-  simp [nat.div_eq_zero h],
-  rw div_eq_mul_inv,
-  have fff: (0 : ℝ) < a, simp [ha],
-  have ggg : (0 : ℝ) < a⁻¹, simp [ha],
-  have : 0 ≤ (b : ℝ) * (↑a)⁻¹, simp [real.mul_pos, zero_lt_b, ggg],
-  rw abs_of_nonneg this,
-  rw mul_inv_le_iff fff,
-  simp [le_of_lt h],
-
-  rw abs_le,
-  let foo := @nat.floor_div_eq_div ℝ (real.linear_ordered_field) (real.floor_semiring) b a,
-  rw nat.floor_eq_iff' at foo,
-  split,
-  linarith [foo.left, foo.right],
-  linarith [foo.left, foo.right],
-  push_neg at h,
-  linarith [nat.div_pos h (by linarith)],
+  ring_nf,
+  rw abs_mul,
+  conv {
+    to_lhs,
+    congr,
+    congr,
+    congr,
+    skip,
+    rw mul_comm,
+  },
 end
-
-lemma dumbdumb {a b c d : ℝ} : |a * b - a * c * d| = |a| * |b - c * d| := by sorry
 
 lemma afaf {a b : ℝ} : |a| ≤ 1 ∧ |b| ≤ 1 → |a| * |b| ≤ 1 :=
 begin
@@ -583,7 +562,17 @@ begin
     rw div_eq_mul_inv,
     simp,
   },
-  conv {to_lhs, congr, skip, funext, rw dumbdumb, rw u1 d, rw u2 d, rw abs_sub_comm,},
+  unfold μ_over_d2,
+  conv {
+    to_lhs,
+    congr,
+    skip,
+    funext,
+    rw dumbdumb,
+    rw u1 x,
+    rw u2 x,
+    rw abs_sub_comm,
+  },
   have u3 : ∀ (d : ℕ), 0 < d → |((μ d) : ℝ)| * |(b : ℝ) / ↑(d ^ 2) - ↑(b / d ^ 2)| ≤ 1,
   {
     intros d hd,
@@ -610,9 +599,34 @@ begin
 end
 
 
+
 def μ_sum_at_2 := ∑' i, μ_over_d2 i
 
-lemma summable_μ_over_d2 : summable μ_over_d2 := by sorry
+lemma summable_μ_over_d2 : summable μ_over_d2 :=
+begin
+  rw ← summable_abs_iff,
+  unfold μ_over_d2,
+  have u1 : ∀ (i : ℕ), | ((μ i) : ℝ) * (↑i ^ 2)⁻¹| ≤ (↑i ^ 2)⁻¹,
+  {
+    intros i,
+    rw abs_mul,
+    by_cases hi : i = 0,
+      simp [hi],
+    have hi : 0 < i, exact zero_lt_iff.mpr hi,
+    have : 0 < ((i : ℝ) ^ 2)⁻¹, simp, norm_cast, apply pow_pos, exact hi,
+    rw abs_of_pos this,
+    rw mul_comm,
+    rw ← le_div_iff' this,
+    rw div_self ((ne_of_lt this).symm),
+    have : (1 : ℝ) = ↑(1 : ℕ), simp,
+    rw this,
+    norm_cast,
+    exact abs_mu_le_one,
+  },
+  have u2 : ∀ (i : ℕ), 0 ≤ | ((μ i) : ℝ) * (↑i ^ 2)⁻¹|, intros i, exact abs_nonneg _,
+  apply summable_of_nonneg_of_le u2 u1,
+  exact one_dirichlet_summable 2 (by simp),
+end
 
 def goal_func := (λ (n : ℕ), ↑n * μ_sum_at_2)
 
@@ -626,7 +640,24 @@ lemma blarg
 ∑' (i : ℕ), ite (i < n) (f i) 0 = ∑ i in finset.Ico 1 n, f i
 :=
 begin
-  sorry,
+  rw head_sum_eq',
+  symmetry,
+  have : finset.Ico 1 n ⊆ finset.Ico 0 n,
+  {
+    rw subset_iff,
+    intros x,
+    simp,
+  },
+  apply finset.sum_subset this,
+  intros x hx hx',
+  have : x = 0, {
+    simp at hx,
+    simp at hx',
+    by_contradiction H,
+    have : 1 ≤ x, exact one_le_of_ne_zero.mpr H,
+    linarith [calc n ≤ x : hx' this ... < n : hx],
+  },
+  simp [hf, this],
 end
 
 lemma tsum_sub_head_eq_tail''
@@ -638,7 +669,7 @@ summable f → ∑' (i : ℕ), f i - ∑ (i : ℕ) in finset.Ico 1 n, f i = ∑'
 :=
 begin
   rw ← blarg hf,
-  exact tsum_sub_head_eq_tail',
+  exact tsum_sub_head_eq_tail_lt,
 end
 
 -- Extend the sum to infinity and pick up a O(√x) term
@@ -660,7 +691,20 @@ begin
   unfold sum_μ_times_n_over_d2,
   unfold goal_func,
   unfold one_over_d2_from,
-  have : |∑ (d : ℕ) in Ico 1 (sqrt b), ↑b * μ_over_d2 d - ↑b * μ_sum_at_2| = ↑b * |∑ (d : ℕ) in Ico 1 (sqrt b), μ_over_d2 d - μ_sum_at_2|, sorry,
+  have : |∑ (d : ℕ) in Ico 1 (sqrt b), ↑b * μ_over_d2 d - ↑b * μ_sum_at_2| = ↑b * |∑ (d : ℕ) in Ico 1 (sqrt b), μ_over_d2 d - μ_sum_at_2|,
+  {
+    rw ← mul_sum,
+    rw ← mul_sub,
+    rw abs_mul,
+    -- Casting sadness
+    have : (0 : ℝ) ≤ ↑b, {
+      have : (0 : ℝ) = ↑(0 : ℕ), simp,
+      rw this,
+      norm_cast,
+      calc 0 ≤ 100 : by linarith ... ≤ b : hb,
+    },
+    rw abs_of_nonneg this,
+  },
   rw this,
   apply mul_le_mul,
   simp,
@@ -675,7 +719,7 @@ begin
       rw tsum_sub_head_eq_tail'' u1 summable_μ_over_d2,
     },
     transitivity,
-    exact abs_tsum_le_tsum_abs _,
+    exact abs_tsum_le_tsum_abs,
     have u4 : ∀ (i : ℕ), 0 ≤ ite (sqrt b ≤ i) ((i : ℝ) ^ 2)⁻¹ 0, {
       intros i,
       by_cases h : sqrt b ≤ i, {
@@ -692,13 +736,35 @@ begin
       simp [h],
       unfold μ_over_d2,
       rw abs_mul,
-      sorry,
+      have : 0 < ((c : ℝ) ^ 2)⁻¹, simp, norm_cast, apply pow_pos, calc 0 < 1 : by linarith ... ≤ sqrt b : one_le_sqrt (calc 1 ≤ 100 : by linarith ... ≤ b : hb) ... ≤ c : h,
+      rw abs_of_pos this,
+      rw mul_comm,
+      rw ← le_div_iff' this,
+      rw div_self ((ne_of_lt this).symm),
+      have : (1 : ℝ) = ↑(1 : ℕ), simp,
+      rw this,
+      norm_cast,
+      exact abs_mu_le_one,
     },
     {
       simp [h],
     },
-    sorry,
-    sorry,
+    have : ∀ (c : ℕ), |ite (sqrt b ≤ c) (μ_over_d2 c) 0| = ite (sqrt b ≤ c) (|μ_over_d2 c|) 0, {
+      intros c,
+      by_cases h : sqrt b ≤ c,
+        simp [h],
+        simp [h],
+    },
+    conv {
+      congr,
+      funext,
+      rw this b,
+    },
+    apply tail_summable',
+    rw summable_abs_iff,
+    exact summable_μ_over_d2,
+    apply tail_summable',
+    exact one_dirichlet_summable 2 (by simp),
   },
   exact abs_nonneg _,
   -- This collection of explicit casts is very annoying
@@ -707,7 +773,6 @@ begin
   rw nat.cast_le,
   linarith [hb],
 end
-
 
 lemma step6 :
 asymptotics.is_O
@@ -724,7 +789,7 @@ begin
   intros b hb,
   rw [real.norm_eq_abs, real.norm_eq_abs],
   have : |∑' (i : ℕ), ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0| ≤ ∑' (i : ℕ), |ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0|,
-  exact abs_tsum_le_tsum_abs (λ (i : ℕ), ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0),
+  exact abs_tsum_le_tsum_abs,
   have : ∑' (i : ℕ), |ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0| = ∑' (i : ℕ), ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0,
   congr,
   funext,
@@ -732,8 +797,58 @@ begin
   by_cases b < i,
   simp [h],
   simp [h],
+  rw ← le_div_iff' (calc (0 : ℝ) < ↑(200 : ℕ) : by sorry ... ≤ b : cast_le.mpr hb),
+  unfold one_over_d2_from,
+  transitivity,
+  exact abs_tsum_le_tsum_abs,
+  have : ∀ (i : ℕ), |ite (sqrt b ≤ i) ((i:ℝ) ^ 2)⁻¹ 0| = ite (sqrt b ≤ i) ((i:ℝ) ^ 2)⁻¹ 0,
+    intros i,
+    by_cases h : sqrt b ≤ i,
+      simp [h],
+      simp [h],
+  conv {
+    to_lhs,
+    congr,
+    funext,
+    rw this i,
+  },
+  obtain ⟨c, hc⟩ : ∃ (c : ℕ), sqrt b = c + 1, sorry,
+  rw hc,
+  apply tail_sum_le_tail_integral,
+
   sorry,
 end
+
+lemma step45 :
+asymptotics.is_O
+(λ (n : ℕ), ((sqrt n) : ℝ))
+(λ (n : ℕ), (n : ℝ) ^ ((1 : ℝ) / 2))
+at_top
+:=
+begin
+  unfold asymptotics.is_O,
+  use 1,
+  unfold asymptotics.is_O_with,
+  simp,
+  use 1,
+  intros b hb,
+  rw real.norm_eq_abs,
+  rw mul_self_le_mul_self_iff _ _,
+  rw ← abs_mul,
+  simp,
+  rw ← real.rpow_add,
+  have : (2 : ℝ)⁻¹ + 2⁻¹ = 1, ring,
+  rw this,
+  simp,
+  norm_cast,
+  exact sqrt_le b,
+  norm_cast,
+  linarith,
+  norm_cast,
+  simp,
+  exact abs_nonneg _,
+end
+
 
 /- Putting all the steps together -/
 theorem bigbad :
@@ -745,8 +860,19 @@ at_top
 :=
 begin
   refine is_Ot_trans_bigger_error_right _ step5' step6,
-  let foo := is_Ot_trans_same_error first_steps',
-
+  refine is_Ot_bigger_error _ step45,
+  refine is_Ot_trans_same_error _ step4,
+  refine is_Ot_trans_bigger_error_right _ first_steps' _,
+  apply is_Ot.congr,
+  simp,
+  unfold asymptotics.is_O,
+  use 1,
+  unfold asymptotics.is_O_with,
+  rw eventually_iff,
+  simp,
+  use 1,
+  intros b hb,
+  exact one_le_sqrt hb,
 end
 
 end squarefree_sums

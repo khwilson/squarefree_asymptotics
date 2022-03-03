@@ -13,6 +13,8 @@ noncomputable theory
 open nat finset list finsupp set function filter measure_theory
 open_locale classical topological_space interval big_operators filter ennreal asymptotics
 
+variables {α : Type*} [preorder α]
+
 namespace squarefree_sums
 
 lemma real_tendsto_implies_nat_tendsto
@@ -148,6 +150,25 @@ begin
   have hfg' : ∃ (X : ℕ), ∀ (x : ℕ), X ≤ x → (f - g) x ≤ 0, use X, intros x, simp, exact hfg x,
   have : a - b ≤ 0, exact tendsto_le_zero_ev' hfg' this,
   linarith,
+end
+
+lemma tendsto_nonneg_ev
+{a : ℝ}
+{f : ℕ → ℝ}
+(hf : ∃ (X : ℕ), ∀ (x : ℕ), X ≤ x → 0 ≤ f x)
+(hf': tendsto f at_top (𝓝 a))
+:
+0 ≤ a
+:=
+begin
+  have : tendsto (λ (n : ℕ), (0 : ℝ)) at_top (𝓝 0),
+  {
+    rw tendsto_at_top',
+    intros s hs,
+    have : (0 : ℝ) ∈ s, rcases mem_nhds_iff.mp hs with ⟨t, ht, ht'⟩, calc (0 : ℝ) ∈ t : ht'.right ... ⊆ s : ht,
+    simp [this],
+  },
+  exact tendsto_le' hf this hf',
 end
 
 end squarefree_sums

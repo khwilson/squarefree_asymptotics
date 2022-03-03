@@ -22,14 +22,6 @@ begin
   simp,
 end
 
-instance : floor_semiring ℝ :=
-{ floor := λ a, ⌊a⌋.to_nat,
-  ceil := λ a, ⌈a⌉.to_nat,
-  floor_of_neg := λ a ha, int.to_nat_of_nonpos (int.floor_nonpos ha.le),
-  gc_floor := λ a n ha, by { rw [int.le_to_nat_iff (int.floor_nonneg.2 ha), int.le_floor], refl },
-  gc_ceil := λ a n, by { rw [int.to_nat_le, int.ceil_le], refl } }
-
-
 lemma measure_subset_null (s t : set ℝ) : s ⊆ t →  measure_theory.measure_space.volume t = 0 → measure_theory.measure_space.volume s = 0 :=
 begin
   intros h ht,
@@ -598,8 +590,16 @@ begin
   simp,
   calc a ≤ a + 1 : le_succ a ... ≤ i : hi,
   simp [hi],
+
+  -- Now to the not summable case
   rw not_summable_eq_zero h,
-  sorry,
+  refine tendsto_nonneg_ev _ hf,
+  use a + 1,
+  intros x hx,
+  apply interval_integral.integral_nonneg,
+  norm_cast, linarith,
+  intros u hu,
+  exact hf_nonneg u (mem_Icc_mem_Ici hu),
 end
 
 lemma goal (a r : ℝ) (ha : 0 < a) (hr : r < -1):
@@ -710,6 +710,7 @@ begin
   by_cases b < ↑n,
   simp [h, abs_nonneg],
   simp [h],
+  calc 0 ≤ 200 : by linarith ... ≤ b : hb,
   exact hf,
   exact abs_nonneg _,
 end

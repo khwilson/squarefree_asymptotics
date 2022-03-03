@@ -202,6 +202,29 @@ begin
   simp [hx],
 end
 
+lemma head_sum_eq'
+{n : ℕ}
+{f : ℕ → ℝ}
+:
+∑' (i : ℕ), ite (i < n) (f i) 0 = ∑ (i : ℕ) in finset.Ico 0 n, f i
+:=
+begin
+  have : ∀ (m : ℕ), n ≤ m → (λ i, ite (i < n) (f i) 0) m = 0, {
+    intros m hm,
+    simp,
+    intros xf,
+    exfalso,
+    linarith,
+  },
+  rw tsum_of_eventually_zero_eq_finset_sum this,
+  refine sum_congr rfl _,
+  intros x hx,
+  simp at hx,
+  simp [hx],
+end
+
+
+
 lemma finite_diff_summable_aux
 {f : ℕ → ℝ}
 {g : ℕ → ℝ}
@@ -257,6 +280,27 @@ summable (λ (i : ℕ), ite (n < i) (f i) 0)
 :=
 begin
   have : ∃ (s : finset ℕ), ∀ (i : ℕ), i ∉ s → (λ (i : ℕ), ite (n < i) (f i) 0) i = f i,
+  {
+    use finset.range (n + 1),
+    intros i hi,
+    rw finset.mem_range at hi,
+    simp [hi],
+    intros hn,
+    linarith,
+  },
+  rw finite_diff_summable this,
+  simp [hf],
+end
+
+lemma tail_summable'
+{n : ℕ}
+{f : ℕ → ℝ}
+(hf : summable f)
+:
+summable (λ (i : ℕ), ite (n ≤ i) (f i) 0)
+:=
+begin
+  have : ∃ (s : finset ℕ), ∀ (i : ℕ), i ∉ s → (λ (i : ℕ), ite (n ≤ i) (f i) 0) i = f i,
   {
     use finset.range (n + 1),
     intros i hi,
@@ -431,23 +475,77 @@ begin
       exact single_summable,
 end
 
+lemma tsum_sub_head_eq_tail_lt
+{n : ℕ}
+{f : ℕ → ℝ}
+:
+-- must be summable or else 0s mess things up
+summable f → ∑' (i : ℕ), f i - ∑' (i : ℕ), ite (i < n) (f i) 0 = ∑' (i : ℕ), ite (n ≤ i) (f i) 0
+:=
+begin
+  sorry,
+end
+
+lemma ite_floor_le' {b c d : ℝ}
+(hb : 0 ≤ b) :
+∀ (n : ℕ), ite (↑n ≤ b) c d = ite (n ≤ ⌊b⌋₊) c d :=
+begin
+  intros n,
+  by_cases h : ↑n ≤ b,
+    simp [h, le_floor h],
+    push_neg at h,
+    simp [not_le.mpr h, not_le.mpr ((floor_lt hb).mpr h)],
+end
+
+lemma ite_floor_le {b c d : ℝ}
+(hb : 0 ≤ b) :
+(λ (n : ℕ), ite (↑n ≤ b) c d) = (λ (n : ℕ), ite (n ≤ ⌊b⌋₊) c d) :=
+begin
+  ext n,
+  exact ite_floor_le' hb n,
+end
+
+lemma ite_lt_floor' {b c d : ℝ}
+(hb : 0 ≤ b) :
+∀ (n : ℕ), ite (b < ↑n) c d = ite (⌊b⌋₊ < n) c d :=
+begin
+  intros n,
+  by_cases h : b < ↑n,
+    simp [h, (floor_lt hb).mpr h],
+    push_neg at h,
+    simp [not_lt.mpr h, not_lt.mpr (le_floor h)],
+end
+
+lemma ite_lt_floor {b c d : ℝ}
+(hb : 0 ≤ b) :
+(λ (n : ℕ), ite (b < ↑n) c d) = (λ (n : ℕ), ite (⌊b⌋₊ < n) c d) :=
+begin
+  ext n,
+  exact ite_lt_floor' hb n,
+end
+
+
 lemma tsum_sub_head_eq_tail'
 {b : ℝ}
 {f : ℝ → ℝ}
+(hb : 0 ≤ b)
 :
 summable (λ (i : ℕ), f ↑i) → ∑' (i : ℕ), f ↑i - ∑' (i : ℕ), ite (↑i ≤ b) (f i) 0 = ∑' (i : ℕ), ite (b < ↑i) (f ↑i) 0
 :=
 begin
   let g : ℕ → ℝ := (λ n, f ↑n),
-  have gequiv : g = (λ n, f ↑n), sorry,
-  have gequiv' : ∀ (n : ℕ), g n = f ↑n, sorry,
+  have gequiv : g = (λ n, f ↑n), refl,
+  have gequiv' : ∀ (n : ℕ), g n = f ↑n, intros n, refl,
   rw ← gequiv,
   intros hg,
   conv {
     congr,congr,skip,congr,funext, rw ← gequiv' i, skip, congr, funext, rw ← gequiv' i,
   },
+  conv {
+    congr,congr,skip,funext,congr, funext, rw ite_floor_le' hb i,
+    skip, congr, funext, rw ite_lt_floor' hb i,
+  },
   exact tsum_sub_head_eq_tail hg,
-  sorry,
 end
 
 lemma not_summable_eq_zero

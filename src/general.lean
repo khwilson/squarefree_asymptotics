@@ -19,6 +19,21 @@ begin
   exact this.symm,
 end
 
+lemma one_le_of_ne_zero {m : ℕ} : 1 ≤ m ↔ m ≠ 0 :=
+begin
+  split,
+  intros h,
+  linarith,
+  intros h,
+  induction m with m hm,
+  simp,
+  exact h rfl,
+
+  calc m.succ = m + 1 : rfl
+    ... ≥ 0 + 1 : le_add_self
+    ... = 1 : by ring,
+end
+
 lemma two_le_nat_iff_not_zero_one {m : ℕ} : 2 ≤ m ↔ m ≠ 0 ∧ m ≠ 1 :=
 begin
   split,
@@ -519,6 +534,38 @@ begin
   linarith [is_le, is_ge],
 end
 
+-- How do I use to_floor_semiring?
+instance : floor_semiring ℝ :=
+{ floor := λ a, ⌊a⌋.to_nat,
+  ceil := λ a, ⌈a⌉.to_nat,
+  floor_of_neg := λ a ha, int.to_nat_of_nonpos (int.floor_nonpos ha.le),
+  gc_floor := λ a n ha, by { rw [int.le_to_nat_iff (int.floor_nonneg.2 ha), int.le_floor], refl },
+  gc_ceil := λ a n, by { rw [int.to_nat_le, int.ceil_le], refl } }
 
+lemma floor_off_by_le_one {a b : ℕ} (ha : 0 < a) :
+|(b : ℝ) / a - ↑(b / a)| ≤ 1 :=
+begin
+  by_cases b = 0,
+  simp [h],
+  have zero_lt_b : 0 < b, exact zero_lt_iff.mpr h,
+  by_cases b < a,
+  simp [nat.div_eq_zero h],
+  rw div_eq_mul_inv,
+  have fff: (0 : ℝ) < a, simp [ha],
+  have ggg : (0 : ℝ) < a⁻¹, simp [ha],
+  have : 0 ≤ (b : ℝ) * (↑a)⁻¹, simp [real.mul_pos, zero_lt_b, ggg],
+  rw abs_of_nonneg this,
+  rw mul_inv_le_iff fff,
+  simp [le_of_lt h],
+
+  rw abs_le,
+  let foo := @nat.floor_div_eq_div ℝ (real.linear_ordered_field) (real.floor_semiring) b a,
+  rw nat.floor_eq_iff' at foo,
+  split,
+  linarith [foo.left, foo.right],
+  linarith [foo.left, foo.right],
+  push_neg at h,
+  linarith [nat.div_pos h (by linarith)],
+end
 
 end squarefree_sums
