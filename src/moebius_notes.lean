@@ -5,6 +5,7 @@ import data.list.intervals
 import tactic
 import measure_theory.integral.interval_integral
 import general
+import archive
 import defs
 import summability
 import squarefree_rw
@@ -386,6 +387,7 @@ begin
   have zzz : 2 * sqrt n + 1 < sqrt n * sqrt n,
   {
     let f := (λ (x : ℝ), 1 * x ^ 2 + -2 * x + -1),
+    have fequiv : ∀ (x : ℝ), f x = 1 * x ^ 2 + -2 * x + -1, simp,
     have : monotone_on f (set.Ici (- - 2 / (2 * 1))),
       exact quadratic_monotone_eventually (by simp),
 
@@ -407,12 +409,17 @@ begin
     specialize this bb' cc' aa',
     have aa : 0 < f 3, simp,
     linarith,
-    have bb : f ↑(sqrt n) = ↑((sqrt n * sqrt n) - 2 * (sqrt n) - 1), sorry, -- So much casting nonsense
-    have : (0 : ℝ) < ↑((sqrt n * sqrt n) - 2 * (sqrt n) - 1), linarith,
-    have : 0 < (sqrt n * sqrt n) - 2 * (sqrt n) - 1, {
-      exact cast_lt.mp this,
+    zify,
+    have bb : f ↑(sqrt n) = ↑(((sqrt n * sqrt n) : ℤ) - 2 * (sqrt n) - 1), {
+      rw fequiv,
+      norm_cast,
+      simp,
+      ring,
     },
-    sorry,  -- Why is it so damn hard to move things around inequalities even _after_ casts?
+    have : (0 : ℝ) < ↑(((sqrt n * sqrt n) : ℤ) - 2 * (sqrt n) - 1), linarith,
+    norm_cast at this,
+    simp at this,
+    linarith,
   },
   have : (2 * sqrt n + 1) / (sqrt n * sqrt n) = 0, exact nat.div_eq_zero zzz,
   have : (sqrt n * sqrt n + 2 * sqrt n + 1) / (sqrt n * sqrt n) = (2 * sqrt n + 1) / (sqrt n * sqrt n) + 1,
@@ -782,41 +789,84 @@ at_top
 :=
 begin
   unfold asymptotics.is_O,
-  use 1,
+  use 2,
   unfold asymptotics.is_O_with,
   simp,
   use 200,
   intros b hb,
   rw [real.norm_eq_abs, real.norm_eq_abs],
-  have : |∑' (i : ℕ), ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0| ≤ ∑' (i : ℕ), |ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0|,
-  exact abs_tsum_le_tsum_abs,
-  have : ∑' (i : ℕ), |ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0| = ∑' (i : ℕ), ite (b < ↑i) ((i : ℝ) ^ 2)⁻¹ 0,
-  congr,
-  funext,
-  simp,
-  by_cases b < i,
-  simp [h],
-  simp [h],
-  rw ← le_div_iff' (calc (0 : ℝ) < ↑(200 : ℕ) : by sorry ... ≤ b : cast_le.mpr hb),
+  rw ← le_div_iff' (calc (0 : ℝ) < ↑(200 : ℕ) : by {simp, linarith, } ... ≤ ↑b : cast_le.mpr hb),
   unfold one_over_d2_from,
   transitivity,
   exact abs_tsum_le_tsum_abs,
-  have : ∀ (i : ℕ), |ite (sqrt b ≤ i) ((i:ℝ) ^ 2)⁻¹ 0| = ite (sqrt b ≤ i) ((i:ℝ) ^ 2)⁻¹ 0,
-    intros i,
-    by_cases h : sqrt b ≤ i,
-      simp [h],
-      simp [h],
-  conv {
-    to_lhs,
-    congr,
-    funext,
-    rw this i,
-  },
-  obtain ⟨c, hc⟩ : ∃ (c : ℕ), sqrt b = c + 1, sorry,
-  rw hc,
-  apply tail_sum_le_tail_integral,
 
-  sorry,
+  have : ∑' (i : ℕ), |ite (sqrt b ≤ i) ((i : ℝ) ^ 2)⁻¹ 0| = ∑' (i : ℕ), ite (sqrt b ≤ i) ((i : ℝ) ^ 2)⁻¹ 0,
+    congr, funext, simp, by_cases sqrt b ≤ i, simp [h], simp [h],
+  rw this,
+
+  obtain ⟨c, hc, hc_zero⟩ : ∃ (c : ℕ), sqrt b = c + 1 ∧ 0 < c, exact asdfasdf hb,
+  rw hc,
+  have hc_cast' : (0 : ℝ) < ↑c, simp [hc_zero],
+  have hc_cast : (0 : ℝ) ≤ ↑c, exact le_of_lt hc_cast',
+  have : - ↑c ^ (-(2 : ℝ) + 1) / (-(2 : ℝ) + 1) ≤ 2 * |(b : ℝ) ^ (2 : ℝ)⁻¹| / ↑b, exact extraordinarily_annoying hb hc,
+  rw ← ge_iff_le,
+  transitivity,
+  exact this,
+  rw ge_iff_le,
+  refine @tail_sum_le_tail_integral _ _ (λ (x : ℝ), (x ^ 2)⁻¹) _ _ _,
+  have : (λ (b : ℕ), ∫ (x : ℝ) in ↑c..↑b, (λ (x : ℝ), (x ^ 2)⁻¹) x) = (λ (b : ℕ), (λ (b' : ℝ), ∫ (x : ℝ) in ↑c..b', (λ (x : ℝ), (x ^ (-2 : ℝ))) x) ↑b), {
+    funext d,
+    simp,
+    apply interval_integral.integral_congr,
+    unfold set.eq_on,
+    intros x hx,
+    rw real.rpow_neg,
+    norm_cast,
+    by_cases h : c ≤ d,
+      rw interval_eq_Icc (cast_le.mpr h) at hx,
+      simp at hx,
+      calc (0 : ℝ) = ↑(0 : ℕ) : by simp ... ≤ ↑c : cast_le.mpr (zero_le c) ... ≤ x : hx.left,
+
+      push_neg at h,
+      rw interval_eq_Icc' (cast_le.mpr (le_of_lt h)) at hx,
+      simp at hx,
+      calc (0 : ℝ) = ↑(0 : ℕ) : by simp ... ≤ ↑d : cast_le.mpr (zero_le d) ... ≤ x : hx.left,
+  },
+  rw this,
+  apply real_tendsto_implies_nat_tendsto,
+  exact goal ↑c (-2) hc_cast' (by linarith),
+  {
+    unfold antitone_on,
+    intros a ha b hb hab,
+
+    have b_cast: (b ^ (2 : ℕ)) = (b ^ (2 : ℝ)), norm_cast,
+    rw b_cast,
+    have a_cast: (a ^ (2 : ℕ)) = (a ^ (2 : ℝ)), norm_cast,
+    rw a_cast,
+    rw inv_le_inv,
+    apply real.rpow_le_rpow,
+    simp at ha,
+    calc (0 : ℝ) ≤ ↑c : hc_cast ... ≤ a : ha,
+    exact hab,
+    linarith,
+
+    rw ← b_cast,
+    apply pow_pos,
+    simp at hb,
+    calc (0 : ℝ) < ↑c : hc_cast' ... ≤ b : hb,
+
+    rw ← a_cast,
+    apply pow_pos,
+    simp at ha,
+    calc (0 : ℝ) < ↑c : hc_cast' ... ≤ a : ha,
+  },
+  {
+    intros a ha,
+    simp,
+    apply pow_nonneg,
+    simp at ha,
+    calc (0 : ℝ) ≤ ↑c : hc_cast ... ≤ a : ha,
+  },
 end
 
 lemma step45 :

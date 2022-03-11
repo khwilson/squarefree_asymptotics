@@ -328,23 +328,6 @@ begin
   linarith,
 end
 
-lemma head_summable_R'
-{n : ℕ}
-{f : ℝ → ℝ}
-:
-summable (λ (i : ℕ), ite (i < n) (f ↑i) 0)
-:=
-begin
-  let g : (ℕ → ℝ) := (λ (i : ℕ), f ↑i),
-  have : ∀ (i : ℕ), g i = f ↑i, intros i, simp,
-  conv {
-    congr,
-    funext,
-    rw ← this i,
-  },
-  exact head_summable',
-end
-
 lemma single_summable
 {n : ℕ}
 {f : ℕ → ℝ}
@@ -422,57 +405,18 @@ summable f → ∑' (i : ℕ), f i - ∑' (i : ℕ), ite (i ≤ n) (f i) 0 = ∑
 :=
 begin
   intros hf,
-  induction n with n hn,
-  simp,
-  rw tsum_ite_eq_extract hf 0,
-  have : ∀ (i : ℕ), ite (i = 0) (f i) 0 = ite (i = 0) (f 0) 0,
-    intros i, by_cases i = 0, simp [h], simp [h],
-  conv {
-    to_lhs,
-    congr,
-    skip,
-    congr,
-    funext,
-    rw this i,
-  },
-  rw tsum_ite_eq,
-  simp,
-  have : ∀ (i : ℕ), ite (i = 0) 0 (f i) = ite (0 < i) (f i) 0,
-    intros i, by_cases i = 0, simp [h], simp [h, zero_lt_iff.mpr h],
-  conv {
-    to_rhs,
-    congr,
-    funext,
-    rw ← this i,
-  },
-  rw tsum_head_succ,
-  have : ∑' (i : ℕ), f i - (∑' (i : ℕ), ite (i ≤ n) (f i) 0 + f n.succ) = (∑' (i : ℕ), f i - ∑' (i : ℕ), ite (i ≤ n) (f i) 0) - f n.succ, ring,
-  rw this,
-  rw hn,
-  have : f n.succ = ∑' (i : ℕ), ite (i = n.succ) (f n.succ) 0, exact (tsum_ite_eq n.succ (f n.succ)).symm,
-  rw this,
-  rw ← tsum_sub,
+  rw sub_eq_iff_eq_add,
+  rw ← tsum_add,
   congr,
   funext,
-  by_cases b = n.succ,
-    simp [h, lt_succ_self n],
+  by_cases h : n < i,
+    simp [h], intros hi, exfalso, exact ne_of_lt (calc n < i : h ... ≤ n : hi) rfl,
 
-    by_cases h' : n < b,
-      have : n.succ < b,
-      {
-        have : n.succ ≤ b, exact succ_le_iff.mpr h',
-        exact lt_of_le_of_ne this (ne.symm h),
-      },
-      simp [h, h', this],
+    push_neg at h,
+    simp [h], intros hi, exfalso, exact ne_of_lt (calc n < i : hi ... ≤ n : h) rfl,
 
-      have : ¬ n.succ < b, {
-        push_neg,
-        push_neg at h',
-        calc b ≤ n : h' ... ≤ n.succ : le_succ n,
-      },
-      simp [h, h', this],
-      exact tail_summable hf,
-      exact single_summable,
+  exact tail_summable hf,
+  exact head_summable,
 end
 
 lemma tsum_sub_head_eq_tail_lt
@@ -483,7 +427,19 @@ lemma tsum_sub_head_eq_tail_lt
 summable f → ∑' (i : ℕ), f i - ∑' (i : ℕ), ite (i < n) (f i) 0 = ∑' (i : ℕ), ite (n ≤ i) (f i) 0
 :=
 begin
-  sorry,
+  intros hf,
+  rw sub_eq_iff_eq_add,
+  rw ← tsum_add,
+  congr,
+  funext,
+  by_cases h : n ≤ i,
+    simp [h], intros hi, exfalso, exact ne_of_lt (calc n ≤ i : h ... < n : hi) rfl,
+
+    push_neg at h,
+    simp [h], intros hi, exfalso, exact ne_of_lt (calc n ≤ i : hi ... < n : h) rfl,
+
+  exact tail_summable' hf,
+  exact head_summable',
 end
 
 lemma ite_floor_le' {b c d : ℝ}

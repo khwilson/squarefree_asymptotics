@@ -289,6 +289,113 @@ begin
   exact succ_le_of_lt this,
 end
 
+lemma castalot
+{a : ℕ} :
+⌊(a : ℝ)⌋₊ = a :=
+begin
+  simp,
+end
+
+lemma mem_Ico_Ioo
+{a b c : ℝ}
+(hc : c ∈ set.Ico a b)
+(hc' : c ≠ a) :
+c ∈ set.Ioo a b :=
+begin
+  simp,
+  simp at hc,
+  cases hc with ha hb,
+  exact ⟨lt_of_le_of_ne ha hc'.symm, hb⟩,
+end
+
+lemma mem_Icc_Ico
+{a b c : ℝ}
+(hc : c ∈ set.Icc a b)
+(hc' : c ≠ b) :
+c ∈ set.Ico a b :=
+begin
+  simp, simp at hc,
+  simp [hc.left],
+  exact lt_of_le_of_ne hc.right hc',
+end
+
+lemma somethingblah'
+{a b : ℕ}
+{x : ℝ}
+:
+x ∈ set.Ico (a : ℝ) ↑b → (⌊x⌋₊ : ℝ) + 1 ∈ set.Icc (a : ℝ) ↑b
+:=
+begin
+  intros hx,
+  have hab : a < b,
+  {
+    simp at hx,
+    exact cast_lt.mp (calc ↑a ≤ x : hx.left ... < b : hx.right),
+  },
+  by_cases h : x = ↑a,
+  {
+    simp,
+    split,
+    rw [h, castalot], norm_cast, exact le_succ a,
+    rw [h, castalot], norm_cast, exact succ_le_of_lt hab,
+  },
+  {
+    exact somethingblah (mem_Ico_Ioo hx h),
+  },
+end
+
+lemma fooooo
+{x y : ℝ}
+{a b : ℕ}
+{f : ℝ → ℝ}
+(hxy : x ≤ y)
+(hf : antitone_on f (set.Icc (a : ℝ) ↑b))
+(hx : x ∈ set.Icc (a : ℝ) ↑b)
+(hy : y ∈ set.Icc (a : ℝ) ↑b) :
+ite (⌊y⌋₊ + 1 ≤ b) (f ↑(⌊y⌋₊ + 1)) (f ↑b) ≤ ite (⌊x⌋₊ + 1 ≤ b) (f ↑(⌊x⌋₊ + 1)) (f ↑b)
+:=
+begin
+  by_cases hy' : y = ↑b,
+  {
+    have : ¬ (⌊y⌋₊ + 1  ≤ b), rw hy', rw castalot, simp,
+    simp [this],
+    by_cases hx' : x = ↑b,
+      have : ¬ (⌊x⌋₊ + 1  ≤ b), rw hx', rw castalot, simp,
+      simp [this],
+
+      have xxx : ↑(⌊x⌋₊ + 1) ∈ set.Icc (a : ℝ) ↑b, exact somethingblah' (mem_Icc_Ico hx hx'),
+      have bbb : ↑b ∈ set.Icc (a : ℝ) ↑b,
+      {
+        simp,
+        simp at hx,
+        exact cast_le.mp (calc ↑a ≤ x : hx.left ... ≤ ↑b : hx.right),
+      },
+      have : ⌊x⌋₊ + 1 ≤ b, simp at xxx, norm_cast at xxx, exact xxx.right,
+      simp [this],
+      exact hf xxx bbb (cast_le.mpr this),
+  },
+  {
+    have : y ∈ set.Ico (a : ℝ) ↑b, exact mem_Icc_Ico hy hy',
+    have hy_icc : ↑(⌊y⌋₊ + 1) ∈ set.Icc (a : ℝ) ↑b, exact somethingblah' this,
+    have hy_le_b : ⌊y⌋₊ + 1 ≤ b, { simp at hy_icc, norm_cast at hy_icc, exact hy_icc.right, },
+
+    have hxy' : ⌊x⌋₊ + 1 ≤ ⌊y⌋₊ + 1,
+    {
+      have : ⌊x⌋₊ ≤ ⌊y⌋₊, exact floor_mono hxy,
+      linarith [this],
+    },
+
+    have : x ≠ ↑b, apply ne_of_lt, simp at this, calc x ≤ y : hxy ... < ↑b : this.right,
+    have : x ∈ set.Ico (a : ℝ) ↑b, exact mem_Icc_Ico hx this,
+    have hx_icc: ↑(⌊x⌋₊ + 1) ∈ set.Icc (a : ℝ) ↑b, exact somethingblah' this,
+    have hx_le_b : ⌊x⌋₊ + 1 ≤ b, { simp at hx_icc, norm_cast at hx_icc, exact hx_icc.right, },
+
+    simp [hx_le_b, hy_le_b],
+    exact hf hx_icc hy_icc (cast_le.mpr hxy'),
+  },
+
+end
+
 lemma antitone_sum_le_integral
 {a b : ℕ}
 {f : ℝ → ℝ}
@@ -399,7 +506,7 @@ begin
     {
       intros x hx y hy hxy,
       rw hequiv x, rw hequiv y,
-      sorry,
+      exact fooooo hxy hf hx hy,
     },
     rw ← interval_eq_Icc (cast_le.mpr hab) at this,
     let blah := antitone_on.interval_integrable this,
@@ -660,59 +767,6 @@ begin
   apply not_mem_interval_of_lt,
   exact ha,
   calc 0 < a : ha ... < x : hx,
-end
-
-lemma goal2
-{r : ℝ}
-{f : ℝ → ℝ}
--- If f is not summable, then the RHS of O is all 0 which doesn't work
-(hf : summable (λ (i : ℕ), f ↑i))
-:
-is_Ot
-(λ (x : ℝ), x ^ r * ∑' (i : ℕ), ite (↑i ≤ x) (f ↑i) 0)
-(λ (x : ℝ), x ^ r * ∑' (i : ℕ), f ↑i)
-(λ (x : ℝ), x ^ r * ∑' (i : ℕ), ite (x < ↑i) (|f ↑i|) 0)
-at_top
-:=
-begin
-  unfold is_Ot,
-  use 1,
-  unfold asymptotics.is_O_with,
-  simp,
-  use 200,
-  intros b hb,
-  rw real.norm_eq_abs,
-  rw real.norm_eq_abs,
-  rw real.norm_eq_abs,
-  rw ← mul_sub (b ^ r),
-  rw abs_mul (b ^ r),
-  apply mul_le_mul_of_nonneg_left,
-  rw abs_sub_comm,
-  simp [hf],
-  rw tsum_sub_head_eq_tail',
-  transitivity,
-  exact abs_tsum_le_tsum_abs,
-  rw abs_tsum_nonneg_eq_tsum,
-  have : ∀ (i : ℕ), |ite (b < ↑i) (f ↑i) 0| = ite (b < ↑i) (|f ↑i|) 0,
-  -- Not sure why abs_of_ite isn't working here....
-  intros i,
-  by_cases h : b < ↑i,
-  simp [h],
-  simp [h],
-
-  conv {
-    to_lhs,
-    congr,
-    funext,
-    rw this i,
-  },
-  intros n,
-  by_cases b < ↑n,
-  simp [h, abs_nonneg],
-  simp [h],
-  calc 0 ≤ 200 : by linarith ... ≤ b : hb,
-  exact hf,
-  exact abs_nonneg _,
 end
 
 end squarefree_sums

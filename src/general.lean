@@ -296,6 +296,29 @@ begin
   exact sqrt_le_sqrt hn,
 end
 
+lemma nat_sqrt_le_real_sqrt
+{a : ℕ} : ↑(sqrt a) ≤ real.sqrt ↑a :=
+begin
+  rw real.le_sqrt,
+  norm_cast,
+  exact nat.sqrt_le' a,
+  simp, simp,
+end
+
+lemma real_sqrt_le_nat_sqrt_succ
+{a : ℕ}
+:
+real.sqrt ↑a ≤ sqrt a + 1
+:=
+begin
+  rw real.sqrt_le_iff,
+  split,
+  norm_cast,
+  simp,
+  norm_cast,
+  exact le_of_lt (nat.lt_succ_sqrt' a),
+end
+
 lemma not_mem_if_gt_max'
 {s : finset ℕ}
 {hs : s.nonempty}
@@ -379,6 +402,15 @@ begin
   have : min a b = a, simp [hab],
   rw this,
   have : max a b = b, simp [hab],
+  rw this,
+end
+
+lemma interval_eq_Icc' {a b : ℝ} (hab : a ≤ b) : [b, a] = set.Icc a b :=
+begin
+  unfold set.interval,
+  have : min b a = a, simp [hab],
+  rw this,
+  have : max b a = b, simp [hab],
   rw this,
 end
 
