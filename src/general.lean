@@ -1,13 +1,9 @@
-import number_theory.arithmetic_function
 import algebra.squarefree
-import algebra.order.floor
-import data.list.intervals
-import tactic
 import measure_theory.integral.interval_integral
 
 noncomputable theory
-open nat finset function filter
-open_locale classical topological_space interval big_operators filter asymptotics arithmetic_function
+open nat finset
+open_locale interval
 
 namespace squarefree_sums
 
@@ -224,28 +220,7 @@ end
 
 lemma prime_squarefree {p : ℕ} (hp : nat.prime p) : squarefree p :=
 begin
-  unfold squarefree,
-  intros x hx,
-  rw dvd_prime at hx,
-  cases hx,
-  rw nat.mul_eq_one_iff at hx,
-  simp at hx,
-  simp [hx],
-  have : x ∣ p,
-    calc x ∣ x * x : dvd_mul_right x x
-      ... = p : hx,
-  rw dvd_prime hp at this,
-  cases this,
-  simp [this],
-  rw this at hx,
-  have : p = 0 ∨ p = 1, exact nat_idemp_iff_zero_one.mp hx.symm,
-  cases this,
-  exfalso,
-  rw this_1 at hp,
-  exact not_prime_zero hp,
-  simp [this_1],
-  rwa this_1 at this,
-  exact hp,
+  exact prime.squarefree (prime_iff.mp hp),
 end
 
 lemma Ico_eq_range {n : ℕ} : finset.Ico 0 n = finset.range n :=
@@ -303,7 +278,7 @@ begin
   linarith [calc n ≤ max' s hs : le_max' s n H ... < n : hn],
 end
 
-lemma tendsto_abs {f : finset ℕ → ℝ} {a : ℝ} (h : filter.tendsto f at_top (nhds a)) : filter.tendsto (λ n, |f n|) at_top (nhds (|a|)) :=
+lemma tendsto_abs {f : finset ℕ → ℝ} {a : ℝ} (h : filter.tendsto f filter.at_top (nhds a)) : filter.tendsto (λ n, |f n|) filter.at_top (nhds (|a|)) :=
 begin
   rw ← real.norm_eq_abs,
   conv {
@@ -340,18 +315,6 @@ begin
   rw finset.mem_range,
   simp at hx,
   simp [lt_succ_of_le hx.right],
-end
-
-lemma abs_of_ite
-{p : Prop}
-{a b : ℝ}
-:
-|ite p a b| = ite p (|a|) (|b|)
-:=
-begin
-  by_cases h : p,
-  simp [h],
-  simp [h],
 end
 
 lemma ite_const_rw
