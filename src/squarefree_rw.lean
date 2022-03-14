@@ -51,7 +51,7 @@ begin
     by_contradiction H,
     rw ← H at vib,
     rw ← vib at via,
-    rw ← exp_eq_iff_pow_eq (nat.prime.two_le hp) at via,
+    rw ← exp_eq_iff_pow_eq hp.two_le at via,
     simp at hia,
     simp at hib,
     linarith [vib, hia, hib, via],

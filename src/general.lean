@@ -82,7 +82,7 @@ begin
       rw @nat.mul_div_cancel_left' p m p_dvd_m at this,
       exact m_ne_zero this,
     },
-    have : 2 ≤ p, exact nat.prime.two_le hp,
+    have : 2 ≤ p, exact hp.two_le,
     have : m / p < M.succ,
       calc m / p < m : lt_of_div this m_ne_zero
         ... ≤ M.succ : hm_ind,

@@ -28,7 +28,7 @@ begin
   rcases this with ⟨k, hk, s_eq⟩,
   rw s_eq at hs,
   rw ← pow_add at hs,
-  have two_le_p : 2 ≤ p, exact nat.prime.two_le hp,
+  have two_le_p : 2 ≤ p, exact hp.two_le,
   rw ← exp_eq_iff_pow_eq two_le_p at hs,
   use k,
   rw ← hs,
@@ -39,7 +39,7 @@ begin
   rw hk,
   rw ← pow_add,
   simp,
-  rw ← exp_eq_iff_pow_eq (nat.prime.two_le hp),
+  rw ← exp_eq_iff_pow_eq hp.two_le,
   ring,
 end
 
