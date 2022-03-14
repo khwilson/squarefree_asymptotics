@@ -128,7 +128,7 @@ end
 
 lemma moebius_of_prime {p : ℕ} (hp : nat.prime p) : μ p = -1 :=
 begin
-  rw arithmetic_function.moebius_apply_of_squarefree (prime_squarefree hp),
+  rw arithmetic_function.moebius_apply_of_squarefree (prime_iff.mp hp).squarefree,
   rw arithmetic_function.card_factors_eq_one_iff_prime.mpr hp,
   ring,
 end

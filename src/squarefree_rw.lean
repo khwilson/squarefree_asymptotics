@@ -95,7 +95,7 @@ begin
   simp,
   unfold squarefree_nat',
   unfold sμ',
-  simp [prime_squarefree hp, is_multiplicative_tμ, ssqrt_prime hp],
+  simp [(prime_iff.mp hp).squarefree, is_multiplicative_tμ, ssqrt_prime hp],
 end
 
 lemma case_1 (p : ℕ) (hp : nat.prime p) (hi : squarefree_nat p = tμ p) : squarefree_nat (p ^ 2) = tμ p + sμ (p ^ 2) :=
@@ -107,7 +107,7 @@ begin
   simp,
   unfold squarefree_nat',
   unfold sμ',
-  simp [prime_squarefree hp],
+  simp [(prime_iff.mp hp).squarefree],
   rw pow_two p,
   rw ssqrt_eq,
   rw moebius_of_prime hp,

@@ -218,11 +218,6 @@ begin
     ... ≤ |a| ^ b : by simp [abs_nonneg, pow_nonneg],
 end
 
-lemma prime_squarefree {p : ℕ} (hp : nat.prime p) : squarefree p :=
-begin
-  exact prime.squarefree (prime_iff.mp hp),
-end
-
 lemma Ico_eq_range {n : ℕ} : finset.Ico 0 n = finset.range n :=
 begin
   simp,
