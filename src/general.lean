@@ -19,21 +19,6 @@ begin
   exact this.symm,
 end
 
-lemma one_le_of_ne_zero {m : ℕ} : 1 ≤ m ↔ m ≠ 0 :=
-begin
-  split,
-  intros h,
-  linarith,
-  intros h,
-  induction m with m hm,
-  simp,
-  exact h rfl,
-
-  calc m.succ = m + 1 : rfl
-    ... ≥ 0 + 1 : le_add_self
-    ... = 1 : by ring,
-end
-
 lemma two_le_nat_iff_not_zero_one {m : ℕ} : 2 ≤ m ↔ m ≠ 0 ∧ m ≠ 1 :=
 begin
   split,

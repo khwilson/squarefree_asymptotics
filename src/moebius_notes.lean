@@ -661,7 +661,7 @@ begin
     simp at hx,
     simp at hx',
     by_contradiction H,
-    have : 1 ≤ x, exact one_le_of_ne_zero.mpr H,
+    have : 1 ≤ x, exact nat.one_le_iff_ne_zero.mpr H,
     linarith [calc n ≤ x : hx' this ... < n : hx],
   },
   simp [hf, this],
