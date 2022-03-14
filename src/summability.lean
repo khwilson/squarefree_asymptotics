@@ -13,7 +13,7 @@ import general
 
 noncomputable theory
 open nat finset function filter
-open_locale classical topological_space interval big_operators filter asymptotics arithmetic_function
+open_locale topological_space interval big_operators filter asymptotics arithmetic_function
 
 namespace squarefree_sums
 

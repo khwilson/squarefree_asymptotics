@@ -7,11 +7,14 @@ import measure_theory.integral.interval_integral
 
 noncomputable theory
 open nat finset function filter
-open_locale classical topological_space interval big_operators filter asymptotics arithmetic_function
+open_locale topological_space interval big_operators filter asymptotics arithmetic_function
 
 namespace squarefree_sums
 
 def is_square (n : ℕ) : Prop := ∃ s, s * s = n
+
+instance : decidable_pred (is_square : ℕ → Prop)
+| n := decidable_of_iff' _ (nat.exists_mul_self n)
 
 def ssqrt (n : ℕ) := ite (is_square n) (sqrt n) 0
 
@@ -38,9 +41,6 @@ def squarefree_nat : arithmetic_function ℤ :=
     simp [this],
   }),
 ⟩
-
-instance : decidable_pred (is_square : ℕ → Prop)
-| n := decidable_of_iff' _ (nat.exists_mul_self n)
 
 def is_Ot {α : Type*} (f : α → ℝ) (g : α → ℝ) (h : α → ℝ) (l : filter α) : Prop :=
 ∃ c : ℝ, asymptotics.is_O_with c (f - g) h l

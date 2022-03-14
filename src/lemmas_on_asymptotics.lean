@@ -2,7 +2,7 @@ import defs
 
 noncomputable theory
 open nat finset function filter asymptotics
-open_locale classical topological_space interval big_operators filter asymptotics arithmetic_function
+open_locale topological_space interval big_operators filter asymptotics arithmetic_function
 
 -- h and h' are errors
 variables {α : Type*} {f : α → ℝ} {g : α → ℝ} {h : α → ℝ} {h' : α → ℝ} {k : α → ℝ} {l : filter α}

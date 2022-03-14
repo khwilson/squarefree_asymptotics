@@ -9,7 +9,7 @@ import defs
 
 noncomputable theory
 open nat finset function filter
-open_locale classical topological_space interval big_operators filter asymptotics arithmetic_function
+open_locale topological_space interval big_operators filter asymptotics arithmetic_function
 
 namespace squarefree_sums
 
@@ -146,8 +146,11 @@ lemma ssqrt_eq {n : ℕ} : ssqrt (n * n) = n :=
 begin
   unfold ssqrt,
   rw sqrt_eq,
-  unfold is_square,
-  simp,
+  have : is_square (n * n), {
+    unfold is_square,
+    use n,
+  },
+  simp [this],
 end
 
 lemma squarefree_eq_μ_μ : squarefree_nat = arithmetic_function.pmul μ μ :=

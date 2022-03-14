@@ -11,7 +11,7 @@ import general
 noncomputable theory
 -- open_locale classical
 open nat finset list finsupp set function filter measure_theory
-open_locale classical topological_space interval big_operators filter ennreal asymptotics
+open_locale topological_space interval big_operators filter ennreal asymptotics
 
 namespace squarefree_sums
 
