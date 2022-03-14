@@ -41,20 +41,6 @@ begin
     ... = 2 : by ring,
 end
 
-lemma two_le_prime {p : ℕ}: nat.prime p → 2 ≤ p :=
-begin
-  intros hp,
-  by_cases p_zero : p = 0,
-  exfalso,
-  rw p_zero at hp,
-  exact not_prime_zero hp,
-  by_cases p_one : p = 1,
-  exfalso,
-  rw p_one at hp,
-  exact not_prime_one hp,
-  exact two_le_nat_iff_not_zero_one.mpr ⟨ p_zero, p_one ⟩,
-end
-
 lemma pow_not_squarefree : ∀ (p i : ℕ), 2 ≤ p → 2 ≤ i → ¬squarefree (p^i) :=
 begin
   intros p i hp hi,
@@ -100,7 +86,7 @@ begin
       rw @nat.mul_div_cancel_left' p m p_dvd_m at this,
       exact m_ne_zero this,
     },
-    have : 2 ≤ p, exact two_le_prime hp,
+    have : 2 ≤ p, exact nat.prime.two_le hp,
     have : m / p < M.succ,
       calc m / p < m : lt_of_div this m_ne_zero
         ... ≤ M.succ : hm_ind,
