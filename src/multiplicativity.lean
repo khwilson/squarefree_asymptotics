@@ -264,8 +264,8 @@ The proof can probably be much simpler, but it's mostly futzing around with
 the differences between multisets and lists and finsupps etc.
 -/
 lemma multiplicative_eq_iff_eq_on_prime_powers {f g : arithmetic_function ℤ}
-(hf : arithmetic_function.is_multiplicative f)
-(hg : arithmetic_function.is_multiplicative g)
+(hf : f.is_multiplicative)
+(hg : g.is_multiplicative)
 :
 f = g ↔ ∀ (p i : ℕ), nat.prime p → f (p^i) = g (p^i)
 :=
@@ -276,11 +276,12 @@ begin
   intros h,
   ext n,
   by_cases hn : n = 0,
-  simp [hn],
-  rw nat.multiplicative_factorization f,
+  rw [hn, arithmetic_function.map_zero, arithmetic_function.map_zero],
+  rw nat.multiplicative_factorization f (λ x y, (λ hxy, hf.map_mul_of_coprime hxy)) hf.map_one hn,
+  rw nat.multiplicative_factorization g (λ x y, (λ hxy, hg.map_mul_of_coprime hxy)) hg.map_one hn,
+
   have : n.factorization.support ⊆ n.factors.to_finset, simp,
   rw finsupp.prod_of_support_subset n.factorization this,
-  rw nat.multiplicative_factorization g,
   rw finsupp.prod_of_support_subset n.factorization this,
   apply prod_congr rfl,
   intros p hp,
@@ -288,13 +289,7 @@ begin
   exact h p (n.factorization p) (nat.prime_of_mem_factors hp),
 
   intros i hi, rw pow_zero, exact hg.map_one,
-  intros x y hxy, exact hg.map_mul_of_coprime hxy,
-  exact hg.map_one,
-  exact hn,
   intros i hi, rw pow_zero, exact hf.map_one,
-  intros x y hxy, exact hf.map_mul_of_coprime hxy,
-  exact hf.map_one,
-  exact hn,
 end
 
 end squarefree_sums
