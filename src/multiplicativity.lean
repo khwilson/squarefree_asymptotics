@@ -255,7 +255,14 @@ end
 --         MULTIPLICATIVE FUNCTIONS DEFINED BY VALUES ON PRIME POWERS
 ----------------------------------------------------------------------------
 
--- nat.multiplicative_factorization'
+/-
+This lemma is _nearly_ identical to nat.multiplicative_factorization.
+However, that lemma requires f 0 = 1 whereas arithmetic_function requires
+f 0 = 0.
+
+The proof can probably be much simpler, but it's mostly futzing around with
+the differences between multisets and lists and finsupps etc.
+-/
 lemma multiplicative_eq_iff_eq_on_prime_powers {f g : arithmetic_function ℤ}
 (hf : arithmetic_function.is_multiplicative f)
 (hg : arithmetic_function.is_multiplicative g)
@@ -267,58 +274,27 @@ begin
   intros h p i _,
   simp [h],
   intros h,
-  ext m,
-  apply nat.strong_induction_on m,
-  clear m,
-  intros m,
-  intros h_ind,
+  ext n,
+  by_cases hn : n = 0,
+  simp [hn],
+  rw nat.multiplicative_factorization f,
+  have : n.factorization.support ⊆ n.factors.to_finset, simp,
+  rw finsupp.prod_of_support_subset n.factorization this,
+  rw nat.multiplicative_factorization g,
+  rw finsupp.prod_of_support_subset n.factorization this,
+  apply prod_congr rfl,
+  intros p hp,
+  rw list.mem_to_finset at hp,
+  exact h p (n.factorization p) (nat.prime_of_mem_factors hp),
 
-  by_cases m_ne_zero : m = 0,
-  simp [m_ne_zero],
-  by_cases m_ne_one : m = 1,
-  simp [m_ne_one, hf, hg],
-  have one_le_m : 1 ≤ m, linarith [zero_lt_iff.mpr m_ne_zero],
-  have zero_lt_m : 0 < m, linarith,
-  have two_le_m : 2 ≤ m, exact two_le_nat_iff_not_zero_one.mpr ⟨m_ne_zero, m_ne_one⟩,
-  obtain ⟨p, p_is_prime, p_dvd_m⟩ : ∃ (p : ℕ), nat.prime p ∧ p ∣ m, exact exists_prime_and_dvd two_le_m,
-  have : ∃ (m' i : ℕ), m = (p^i) * m' ∧ p.coprime m', exact has_coprime_part m p one_le_m p_is_prime,
-  rcases this with ⟨m', i, m_eq, p_coprime⟩,
-  have pi_coprime_m' : (p^i).coprime m', {
-    by_cases i = 0,
-    simp [h],
-    have : 0 < i, exact zero_lt_iff.mpr h,
-    exact (coprime_pow_left_iff this p m').mpr p_coprime,
-  },
-  rw m_eq,
-  have hfs : f(p ^ i * m') = f(p^i) * f(m'), simp [hf, arithmetic_function.is_multiplicative, pi_coprime_m'],
-  have hgs : g(p ^ i * m') = g(p^i) * g(m'), simp [hg, arithmetic_function.is_multiplicative, pi_coprime_m'],
-  rw [hfs, hgs],
-  have m'_lt_m : m' < m,
-  {
-    have aaa : m' ≠ m,
-    {
-      by_contradiction H,
-      rw H at p_coprime,
-      unfold coprime at p_coprime,
-      have : p ∣ p.gcd m,
-      {
-        rw nat.dvd_gcd_iff,
-        split,
-        exact dvd_rfl,
-        exact p_dvd_m,
-      },
-      have : p ≤ p.gcd m, exact le_of_dvd (by linarith [p_coprime]) this,
-      have : 1 < p, exact p_is_prime.one_lt,
-      linarith,
-    },
-    have : m' ∣ m,
-      calc m' ∣ p ^ i * m' : dvd_mul_left m' (p ^ i)
-        ... = m : m_eq.symm,
-    have bbb : m' ≤ m, exact nat.le_of_dvd zero_lt_m this,
-    exact (ne.le_iff_lt aaa).mp bbb,
-  },
-  rw h p i p_is_prime,
-  rw h_ind m' m'_lt_m,
+  intros i hi, rw pow_zero, exact hg.map_one,
+  intros x y hxy, exact hg.map_mul_of_coprime hxy,
+  exact hg.map_one,
+  exact hn,
+  intros i hi, rw pow_zero, exact hf.map_one,
+  intros x y hxy, exact hf.map_mul_of_coprime hxy,
+  exact hf.map_one,
+  exact hn,
 end
 
 end squarefree_sums
