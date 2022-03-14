@@ -19,21 +19,6 @@ begin
   exact this.symm,
 end
 
-lemma one_le_of_ne_zero {m : ℕ} : 1 ≤ m ↔ m ≠ 0 :=
-begin
-  split,
-  intros h,
-  linarith,
-  intros h,
-  induction m with m hm,
-  simp,
-  exact h rfl,
-
-  calc m.succ = m + 1 : rfl
-    ... ≥ 0 + 1 : le_add_self
-    ... = 1 : by ring,
-end
-
 lemma two_le_nat_iff_not_zero_one {m : ℕ} : 2 ≤ m ↔ m ≠ 0 ∧ m ≠ 1 :=
 begin
   split,
@@ -54,20 +39,6 @@ begin
     ... = m_n_n + 2 : by ring
     ... ≥ 0 + 2 : le_add_self
     ... = 2 : by ring,
-end
-
-lemma two_le_prime {p : ℕ}: nat.prime p → 2 ≤ p :=
-begin
-  intros hp,
-  by_cases p_zero : p = 0,
-  exfalso,
-  rw p_zero at hp,
-  exact not_prime_zero hp,
-  by_cases p_one : p = 1,
-  exfalso,
-  rw p_one at hp,
-  exact not_prime_one hp,
-  exact two_le_nat_iff_not_zero_one.mpr ⟨ p_zero, p_one ⟩,
 end
 
 lemma pow_not_squarefree : ∀ (p i : ℕ), 2 ≤ p → 2 ≤ i → ¬squarefree (p^i) :=
@@ -115,7 +86,7 @@ begin
       rw @nat.mul_div_cancel_left' p m p_dvd_m at this,
       exact m_ne_zero this,
     },
-    have : 2 ≤ p, exact two_le_prime hp,
+    have : 2 ≤ p, exact nat.prime.two_le hp,
     have : m / p < M.succ,
       calc m / p < m : lt_of_div this m_ne_zero
         ... ≤ M.succ : hm_ind,
@@ -288,11 +259,11 @@ begin
   rw [mem_union, mem_insert, mem_singleton, or_comm],
 end
 
-lemma sqrt_one_eq_one : 1 = sqrt 1 := by { rw eq_sqrt, simp, linarith, }
+lemma sqrt_one_eq_one : sqrt 1 = 1 := by { symmetry, rw eq_sqrt, simp, linarith, }
 
 lemma one_le_sqrt {n : ℕ} (hn : 1 ≤ n) : 1 ≤ sqrt n :=
 begin
-  rw sqrt_one_eq_one,
+  rw sqrt_one_eq_one.symm,
   exact sqrt_le_sqrt hn,
 end
 
