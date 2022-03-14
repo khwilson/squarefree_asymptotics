@@ -147,7 +147,6 @@ begin
   unfold ssqrt,
   rw sqrt_eq,
   have : is_square (n * n), {
-    unfold is_square,
     use n,
   },
   simp [this],
