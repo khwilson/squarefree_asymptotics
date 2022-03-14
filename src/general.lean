@@ -259,11 +259,11 @@ begin
   rw [mem_union, mem_insert, mem_singleton, or_comm],
 end
 
-lemma sqrt_one_eq_one : 1 = sqrt 1 := by { rw eq_sqrt, simp, linarith, }
+lemma sqrt_one_eq_one : sqrt 1 = 1 := by { symmetry, rw eq_sqrt, simp, linarith, }
 
 lemma one_le_sqrt {n : ℕ} (hn : 1 ≤ n) : 1 ≤ sqrt n :=
 begin
-  rw sqrt_one_eq_one,
+  rw sqrt_one_eq_one.symm,
   exact sqrt_le_sqrt hn,
 end
 

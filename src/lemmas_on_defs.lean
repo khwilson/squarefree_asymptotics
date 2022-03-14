@@ -56,7 +56,7 @@ lemma ssqrt_one : ssqrt 1 = 1 :=
 begin
   unfold ssqrt,
   simp [is_square_one],
-  exact sqrt_one_eq_one.symm,
+  exact sqrt_one_eq_one,
 end
 
 lemma ssqrt_prime {p : ℕ} (hp : nat.prime p) : ssqrt p = 0 :=
