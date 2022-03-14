@@ -308,7 +308,7 @@ begin
         exact p_dvd_m,
       },
       have : p ≤ p.gcd m, exact le_of_dvd (by linarith [p_coprime]) this,
-      have : 1 < p, exact one_lt_prime p_is_prime,
+      have : 1 < p, exact p_is_prime.one_lt,
       linarith,
     },
     have : m' ∣ m,

@@ -7,12 +7,14 @@ open_locale interval
 
 namespace squarefree_sums
 
-lemma two_add {n : ℕ} (hn : 2 ≤ n) : ∃ n', n = 2 + n' :=
+variables {R : Type*} {S : Type*}
+
+lemma two_add {n a : ℕ} (hn : a ≤ n) : ∃ n', n = a + n' :=
 begin
-  have : n - 2 + 2 = n, apply nat.sub_add_cancel hn,
-  use n - 2,
-  ring_nf,
-  exact this.symm,
+  have : n - a + a = n, apply nat.sub_add_cancel hn,
+  use n - a,
+  zify,
+  ring,
 end
 
 lemma two_le_nat_iff_not_zero_one {m : ℕ} : 2 ≤ m ↔ m ≠ 0 ∧ m ≠ 1 :=
@@ -35,23 +37,6 @@ begin
     ... = m_n_n + 2 : by ring
     ... ≥ 0 + 2 : le_add_self
     ... = 2 : by ring,
-end
-
-lemma pow_not_squarefree : ∀ (p i : ℕ), 2 ≤ p → 2 ≤ i → ¬squarefree (p^i) :=
-begin
-  intros p i hp hi,
-  have : p * p ∣ p^i, {
-    obtain ⟨i', hi'⟩ : ∃ i', i = 2 + i', exact two_add hi,
-    rw hi',
-    rw pow_add,
-    rw pow_two,
-    exact dvd_mul_right (p * p) (p ^ i'),
-  },
-  by_contradiction H,
-  unfold squarefree at H,
-  specialize H p this,
-  simp at H,
-  linarith,
 end
 
 lemma lt_of_div {a b : ℕ} (hb : 2 ≤ b) : a ≠ 0 → a / b < a :=
@@ -147,20 +132,6 @@ begin
   exact not_prime_one hp,
 end
 
-lemma one_lt_prime {p : ℕ} (hp : nat.prime p) : 1 < p :=
-begin
-  have : 2 ≤ p,
-  apply two_le_nat_iff_not_zero_one.mpr,
-  split,
-  by_contradiction H,
-  rw H at hp,
-  exact not_prime_zero hp,
-  by_contradiction H,
-  rw H at hp,
-  exact not_prime_one hp,
-  linarith,
-end
-
 lemma exp_eq_iff_pow_eq {a m n : ℕ} : 2 ≤ a → (m = n ↔ a ^ m = a ^ n) :=
 begin
   intros h,
@@ -198,24 +169,12 @@ begin
   simp [h],
 end
 
-lemma pow_le_abs_pow {a : ℝ} {b : ℕ} : a^b ≤ |a| ^ b :=
+lemma pow_le_abs_pow [linear_ordered_ring R] {a : R} {b : ℕ} : a^b ≤ |a| ^ b :=
 begin
-  by_cases 0 ≤ a,
-  rwa abs_of_nonneg,
-  have : a < 0, linarith,
-  by_cases even b,
-  cases h with k hk,
-  rw [hk, pow_mul, pow_mul, ← abs_of_nonneg (pow_two_nonneg a), (pow_abs a)],
-  obtain ⟨k, hk⟩ : odd b, simp [h],
-  have : a ^ b ≤ 0, {
-    rw [hk, pow_add, mul_nonpos_iff],
-    left, split,
-    rw pow_mul,
-    simp [pow_two_nonneg a, pow_nonneg],
-    linarith,
-  },
-  calc a ^ b ≤ 0 : this
-    ... ≤ |a| ^ b : by simp [abs_nonneg, pow_nonneg],
+  rw pow_abs,
+  rw le_abs,
+  left,
+  refl,
 end
 
 lemma Ico_eq_range {n : ℕ} : finset.Ico 0 n = finset.range n :=
@@ -261,16 +220,17 @@ begin
 end
 
 lemma not_mem_if_gt_max'
-{s : finset ℕ}
+[linear_order R]
+{s : finset R}
 {hs : s.nonempty}
-{n : ℕ}
+{n : R}
 (hn : max' s hs < n)
 :
 n ∉ s
 :=
 begin
   by_contradiction H,
-  linarith [calc n ≤ max' s hs : le_max' s n H ... < n : hn],
+  exact ne_of_lt (calc n ≤ max' s hs : le_max' s n H ... < n : hn) rfl,
 end
 
 lemma tendsto_abs {f : finset ℕ → ℝ} {a : ℝ} (h : filter.tendsto f filter.at_top (nhds a)) : filter.tendsto (λ n, |f n|) filter.at_top (nhds (|a|)) :=
@@ -285,7 +245,12 @@ begin
   simp [h],
 end
 
-lemma finset.subset_finset_min_max {s : finset ℕ} (hs : s.nonempty) : s ⊆ finset.Icc (s.min' hs) (s.max' hs) :=
+lemma finset.subset_finset_min_max
+[linear_order R]
+[locally_finite_order R]
+{s : finset R}
+(hs : s.nonempty) :
+s ⊆ finset.Icc (s.min' hs) (s.max' hs) :=
 begin
   rw subset_iff,
   intros x hx,
@@ -295,12 +260,10 @@ begin
   by_cases h : s.min' hs ≤ x,
   specialize H h,
   rw finset.max'_lt_iff at H,
-  specialize H x hx,
-  linarith,
+  exact ne_of_lt (H x hx) rfl,
   push_neg at h,
   rw finset.lt_min'_iff at h,
-  specialize h x hx,
-  linarith,
+  exact ne_of_lt (h x hx) rfl,
 end
 
 lemma finset.Icc_subset_range {a b : ℕ} : finset.Icc a b ⊆ finset.range (b + 1) :=
@@ -313,10 +276,12 @@ begin
 end
 
 lemma ite_const_rw
-{n : ℕ}
-{f : ℕ → ℝ}
+[decidable_eq S]
+{n : S}
+{f : S → R}
+{a : R}
 :
-∀ (i : ℕ), ite (i = n) (f i) 0 = ite (i = n) (f n) 0
+∀ (i : S), ite (i = n) (f i) a = ite (i = n) (f n) a
 :=
 begin
   intros i,
