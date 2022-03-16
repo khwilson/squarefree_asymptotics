@@ -614,7 +614,7 @@ begin
   rw has_sum.tsum_eq hc,
   rw has_sum_iff_tendsto_nat_of_nonneg at hc,
   simp at hf,
-  refine tendsto_le_of_eventually_le hc hf _,
+  refine le_of_tendsto_of_tendsto hc hf _,
   rw [filter.eventually_le, eventually_at_top],
   use a + 100,
   intros n hn,
@@ -701,7 +701,7 @@ begin
 
   -- Now to the not summable case
   rw not_summable_eq_zero h,
-  refine tendsto_le_of_eventually_le (tendsto_const_nhds) hf _,
+  refine le_of_tendsto_of_tendsto (tendsto_const_nhds) hf _,
   rw [filter.eventually_le, eventually_at_top],
   use a + 1,
   intros x hx,
