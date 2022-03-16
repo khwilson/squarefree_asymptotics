@@ -40,135 +40,48 @@ begin
   exact ha this,
 end
 
-lemma tendsto_le_zero_ev
-{a : ℝ}
-{f : ℝ → ℝ}
-(hf_le : ∃ (X : ℝ), ∀ (x : ℝ), X ≤ x → f x ≤ 0)
-(hf : tendsto f at_top (𝓝 a))
-:
-a ≤ 0 :=
+lemma tendsto_le_of_eventually_le
+  {α : Type*}  {γ : Type*}
+  [topological_space α] [linear_order α] [order_closed_topology α]
+  {l : filter γ} [ne_bot l]
+  {f g : γ → α} {u v : α} (hf : filter.tendsto f l (𝓝 u))
+  (hg : filter.tendsto g l (𝓝 v)) (hfg : f ≤ᶠ[l] g) :
+  u ≤ v :=
 begin
   by_contradiction H,
   push_neg at H,
-  let s := set.Ioo (a / 2) (3 * a / 2),
-  have : s ∈ 𝓝 a,
-  {
-    rw mem_nhds_iff_exists_Ioo_subset,
-    use [(a / 2), (3 * a / 2)],
-    split,
-    simp,
-    split,
-    linarith,
-    linarith,
-    exact rfl.subset,
-  },
-  specialize hf this,
-  rw mem_map_iff_exists_image at hf,
-  rcases hf with ⟨t, ht, ht'⟩,
-  simp at ht,
-  cases ht with B hB,
-  cases hf_le with X hX,
-  specialize hB (max B X) (by simp),
-  have : f (max B X) ∈ s,
-    calc f (max B X) ∈ f '' t : by { use (max B X), exact ⟨hB, rfl⟩, }
-      ... ⊆ s : ht',
-  have : 0 < f (max B X),
-    calc 0 < a / 2 : by linarith
-      ... < f (max B X) : by { simp at this, exact this.left, },
 
-  linarith [this, hX (max B X) (by simp)],
-end
+  by_cases h_sep : ∃ x, v < x ∧ x < u,
+  { rcases h_sep with ⟨x, hxl, hxr⟩,
+    cases filter.nonempty_of_mem (
+      l.inter_sets (hf $ Ioi_mem_nhds hxr) (l.inter_sets (hg $ Iio_mem_nhds hxl) hfg)) with c hc,
+    simp at hc,
+    exact ne_of_lt (
+      calc f c ≤ g c : hc.right.right
+        ... < x : hc.right.left
+        ... < f c : hc.left
+    ) rfl, },
+  { cases filter.nonempty_of_mem (
+      l.inter_sets (hf $ Ioi_mem_nhds H) (l.inter_sets (hg $ Iio_mem_nhds H) hfg)) with c hc,
+    simp at hc,
 
-lemma tendsto_le_zero_ev'
-{a : ℝ}
-{f : ℕ → ℝ}
-(hf_le : ∃ (X : ℕ), ∀ (x : ℕ), X ≤ x → f x ≤ 0)
-(hf : tendsto f at_top (𝓝 a))
-:
-a ≤ 0 :=
-begin
-  by_contradiction H,
-  push_neg at H,
-  let s := set.Ioo (a / 2) (3 * a / 2),
-  have : s ∈ 𝓝 a,
-  {
-    rw mem_nhds_iff_exists_Ioo_subset,
-    use [(a / 2), (3 * a / 2)],
-    split,
-    simp,
-    split,
-    linarith,
-    linarith,
-    exact rfl.subset,
-  },
-  specialize hf this,
-  rw mem_map_iff_exists_image at hf,
-  rcases hf with ⟨t, ht, ht'⟩,
-  simp at ht,
-  cases ht with B hB,
-  cases hf_le with X hX,
-  specialize hB (max B X) (by simp),
-  have : f (max B X) ∈ s,
-    calc f (max B X) ∈ f '' t : by { use (max B X), exact ⟨hB, rfl⟩, }
-      ... ⊆ s : ht',
-  have : 0 < f (max B X),
-    calc 0 < a / 2 : by linarith
-      ... < f (max B X) : by { simp at this, exact this.left, },
+    push_neg at h_sep,
+    by_cases hf_lt : f c < u,
+      specialize h_sep (f c) hc.left,
+      exact not_le_of_lt hf_lt h_sep,
 
-  linarith [this, hX (max B X) (by simp)],
-end
+    by_cases hg_lt : v < g c,
+      specialize h_sep (g c) hg_lt,
+      exact ne_of_lt (calc u ≤ g c : h_sep ... < u : hc.right.left) rfl,
 
-lemma tendsto_le_ev
-{a b : ℝ}
-{f g : ℝ → ℝ}
-(hfg : ∃ (X : ℝ), ∀ (x : ℝ), X ≤ x → f x ≤ g x)
-(hf : tendsto f at_top (𝓝 a))
-(hg : tendsto g at_top (𝓝 b))
-:
-a ≤ b :=
-begin
-  cases hfg with X hfg,
-  have : tendsto (f - g) at_top (𝓝 (a - b)),
-    exact filter.tendsto.sub hf hg,
-  have hfg' : ∃ (X : ℝ), ∀ (x : ℝ), X ≤ x → (f - g) x ≤ 0, use X, intros x, simp, exact hfg x,
-  have : a - b ≤ 0, exact tendsto_le_zero_ev hfg' this,
-  linarith,
-end
-
-lemma tendsto_le'
-{a b : ℝ}
-{f g : ℕ → ℝ}
-(hfg : ∃ (X : ℕ), ∀ (x : ℕ), X ≤ x → f x ≤ g x)
-(hf : tendsto f at_top (𝓝 a))
-(hg : tendsto g at_top (𝓝 b))
-:
-a ≤ b :=
-begin
-  cases hfg with X hfg,
-  have : tendsto (f - g) at_top (𝓝 (a - b)),
-    exact filter.tendsto.sub hf hg,
-  have hfg' : ∃ (X : ℕ), ∀ (x : ℕ), X ≤ x → (f - g) x ≤ 0, use X, intros x, simp, exact hfg x,
-  have : a - b ≤ 0, exact tendsto_le_zero_ev' hfg' this,
-  linarith,
-end
-
-lemma tendsto_nonneg_ev
-{a : ℝ}
-{f : ℕ → ℝ}
-(hf : ∃ (X : ℕ), ∀ (x : ℕ), X ≤ x → 0 ≤ f x)
-(hf': tendsto f at_top (𝓝 a))
-:
-0 ≤ a
-:=
-begin
-  have : tendsto (λ (n : ℕ), (0 : ℝ)) at_top (𝓝 0),
-  {
-    rw tendsto_at_top',
-    intros s hs,
-    have : (0 : ℝ) ∈ s, rcases mem_nhds_iff.mp hs with ⟨t, ht, ht'⟩, calc (0 : ℝ) ∈ t : ht'.right ... ⊆ s : ht,
-    simp [this],
-  },
-  exact tendsto_le' hf this hf',
+    push_neg at hf_lt,
+    push_neg at hg_lt,
+    have : u < u,
+      calc u ≤ f c : hf_lt
+        ... ≤ g c : hc.right.right
+        ... ≤ v : hg_lt
+        ... < u : H,
+   exact ne_of_lt this rfl, },
 end
 
 end squarefree_sums
