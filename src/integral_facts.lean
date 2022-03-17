@@ -7,7 +7,6 @@ import measure_theory.integral.interval_integral
 import analysis.special_functions.integrals
 import defs
 import summability
-import lemmas_on_tendsto
 import general
 
 noncomputable theory

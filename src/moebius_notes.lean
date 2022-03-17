@@ -833,7 +833,7 @@ begin
       calc (0 : ℝ) = ↑(0 : ℕ) : by simp ... ≤ ↑d : cast_le.mpr (zero_le d) ... ≤ x : hx.left,
   },
   rw this,
-  apply real_tendsto_implies_nat_tendsto,
+  apply (hf.comp tendsto_coe_nat_at_top_at_top),
   exact goal ↑c (-2) hc_cast' (by linarith),
   {
     unfold antitone_on,
