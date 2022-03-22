@@ -108,65 +108,36 @@ begin
   exact has_coprime_part_strong m m p (by linarith),
 end
 
-lemma prime_pow_eq_one_imp_pow_eq_zero {p i : ℕ} (hp : nat.prime p) : p^i = 1 → i = 0 :=
+lemma exp_eq_iff_pow_eq {a m n : ℕ} (h : 2 ≤ a) : (m = n ↔ a ^ m = a ^ n) :=
 begin
-  induction i with i hi,
-  simp,
-
-  by_cases i = 0,
-  simp [h],
-  intros hh,
-  rw hh at hp,
-  exact not_prime_one hp,
-
-  have : i.succ = i + 1, exact rfl,
-  rw this,
-  rw pow_add,
-  simp,
-  intros hh,
-  have : p ∣ 1,
-    calc p ∣ p ^ i * p : dvd_mul_left p (p ^ i)
-      ... = 1 : hh,
-  have : p = 1, exact nat.dvd_one.mp this,
-  rw this at hp,
-  exact not_prime_one hp,
+  split,
+  { exact congr_arg (λ {m : ℕ}, a ^ m), },
+  { intros hh,
+    by_contradiction H,
+    obtain ht | ht := lt_or_lt_iff_ne.mpr H,
+    { exact ne_of_lt (@pow_lt_pow _ _ a m n (by linarith [h]) ht) hh },
+    { exact ne_of_lt (@pow_lt_pow _ _ a _ _ (by linarith [h]) ht) hh.symm }, },
 end
 
-lemma exp_eq_iff_pow_eq {a m n : ℕ} : 2 ≤ a → (m = n ↔ a ^ m = a ^ n) :=
+lemma prime_pow_eq_one_imp_pow_eq_zero {p i : ℕ} (hp : nat.prime p) : p^i = 1 → i = 0 :=
 begin
   intros h,
-  split,
-  exact congr_arg (λ {m : ℕ}, a ^ m),
-  intros hh,
-  cases nat.lt_trichotomy m n with ht,
-  have : a ^ m < a ^ n, exact pow_lt_pow (calc 1 < 2 : by linarith ... ≤ a : h) ht,
-  linarith,
-  cases h_1 with ht,
-  exact ht,
-  have : a ^ n < a ^ m, exact pow_lt_pow (calc 1 < 2 : by linarith ... ≤ a : h) h_1,
-  linarith,
+  rw ← pow_zero at h,
+  exact (exp_eq_iff_pow_eq hp.two_le).mpr h,
 end
 
 lemma nat_idemp_iff_zero_one {p : ℕ} : p = p * p ↔ p = 0 ∨ p = 1 :=
 begin
-  have : p = 1 * p, simp,
-  conv {
-    to_lhs,
-    to_lhs,
-    rw this,
-  },
+  conv { to_lhs, to_lhs, rw ← one_mul p, },
   split,
-  intros h,
-  by_cases pp : p = 0,
-  left, exact pp,
-  have : 0 < p, exact zero_lt_iff.mpr pp,
-  rw nat.mul_left_inj this at h,
-  right,
-  exact h.symm,
+  { intros h,
+    by_cases hp : p = 0,
+    { simp [hp], },
+    { rw nat.mul_left_inj (zero_lt_iff.mpr hp) at h, simp [h], }, },
   intros h,
   cases h,
-  simp [h],
-  simp [h],
+  { simp [h], },
+  { simp [h], },
 end
 
 lemma pow_le_abs_pow [linear_ordered_ring R] {a : R} {b : ℕ} : a^b ≤ |a| ^ b :=
@@ -440,25 +411,9 @@ begin
   exact cast_le.mp this,
 end
 
-lemma floor_of_unit_Ioo_val
-{k : ℕ} {x : ℝ} : x ∈ set.Ioo (k : ℝ) (↑k + 1) → ⌊x⌋₊ = k :=
-begin
-  intros hx,
-  simp at hx,
-  have zero_le_x : 0 ≤ x, {
-    have : 0 ≤ k, linarith,
-    calc (0 : ℝ) ≤ ↑k : by simp ... ≤ x : by simp [hx.left, le_of_lt],
-  },
-  have is_le : ⌊x⌋₊ ≤ k, {
-    rw ← lt_succ_iff,
-    have : (⌊x⌋₊ : ℝ) < k.succ, calc ↑⌊x⌋₊ ≤ x : nat.floor_le zero_le_x ... < k.succ : by simp [hx.right],
-    rw cast_lt at this,
-    exact this,
-  },
-  have : ↑k ≤ x, exact le_of_lt hx.left,
-  have is_ge : k ≤ ⌊x⌋₊, exact nat.le_floor this,
-  linarith [is_le, is_ge],
-end
+lemma floor_of_unit_Ioo_val {R : Type*} [linear_ordered_semiring R] [floor_semiring R]
+  {k : ℕ} {x : R} : x ∈ set.Ioo (k : R) (↑k + 1) → ⌊x⌋₊ = k :=
+(λ ⟨hxl, hxr⟩, k.floor_eq_on_Ico x ⟨le_of_lt hxl, hxr⟩)
 
 -- How do I use to_floor_semiring?
 instance : floor_semiring ℝ :=
@@ -468,30 +423,22 @@ instance : floor_semiring ℝ :=
   gc_floor := λ a n ha, by { rw [int.le_to_nat_iff (int.floor_nonneg.2 ha), int.le_floor], refl },
   gc_ceil := λ a n, by { rw [int.to_nat_le, int.ceil_le], refl } }
 
-lemma floor_off_by_le_one {a b : ℕ} (ha : 0 < a) :
-|(b : ℝ) / a - ↑(b / a)| ≤ 1 :=
-begin
-  by_cases b = 0,
-  simp [h],
-  have zero_lt_b : 0 < b, exact zero_lt_iff.mpr h,
-  by_cases b < a,
-  simp [nat.div_eq_zero h],
-  rw div_eq_mul_inv,
-  have fff: (0 : ℝ) < a, simp [ha],
-  have ggg : (0 : ℝ) < a⁻¹, simp [ha],
-  have : 0 ≤ (b : ℝ) * (↑a)⁻¹, simp [real.mul_pos, zero_lt_b, ggg],
-  rw abs_of_nonneg this,
-  rw mul_inv_le_iff fff,
-  simp [le_of_lt h],
+lemma ceil_le_floor_add_one {R : Type*} [linear_ordered_semiring R] [floor_semiring R]
+  {a : R} : ⌈a⌉₊ ≤ ⌊a⌋₊ + 1 :=
+ceil_le.mpr $ le_of_lt $ lt_floor_add_one a
 
-  rw abs_le,
-  let foo := @nat.floor_div_eq_div ℝ (real.linear_ordered_field) (real.floor_semiring) b a,
-  rw nat.floor_eq_iff' at foo,
-  split,
-  linarith [foo.left, foo.right],
-  linarith [foo.left, foo.right],
-  push_neg at h,
-  linarith [nat.div_pos h (by linarith)],
+lemma floor_off_by_le_one {R : Type*} [linear_ordered_field R] [floor_semiring R]
+  {a b : ℕ} : |(b : R) / a - ↑(b / a)| ≤ 1 :=
+begin
+  rw ← @floor_div_eq_div R _ _ b a,
+  have target_nonneg : 0 ≤ (b : R) / ↑a - ↑⌊↑b / ↑a⌋₊,
+  { rw sub_nonneg,
+    exact floor_le (div_nonneg (cast_le.mpr zero_le') (cast_le.mpr zero_le')), },
+  rw abs_of_nonneg target_nonneg,
+  rw tsub_le_iff_left,
+  refine le_trans (le_ceil _) _,
+  norm_cast,
+  exact ceil_le_floor_add_one,
 end
 
 end squarefree_sums
