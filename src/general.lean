@@ -11,7 +11,6 @@ variables {R : Type*} {S : Type*}
 
 lemma two_add {n a : ℕ} (hn : a ≤ n) : ∃ n', n = a + n' :=
 begin
-  have : n - a + a = n, apply nat.sub_add_cancel hn,
   use n - a,
   zify,
   ring,
@@ -115,7 +114,7 @@ begin
   { intros hh,
     by_contradiction H,
     obtain ht | ht := lt_or_lt_iff_ne.mpr H,
-    { exact ne_of_lt (@pow_lt_pow _ _ a m n (by linarith [h]) ht) hh },
+    { exact ne_of_lt (@pow_lt_pow _ _ a _ _ (by linarith [h]) ht) hh },
     { exact ne_of_lt (@pow_lt_pow _ _ a _ _ (by linarith [h]) ht) hh.symm }, },
 end
 
