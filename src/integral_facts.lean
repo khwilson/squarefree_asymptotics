@@ -416,6 +416,7 @@ begin
   exact nat.lt_succ_floor x,
 end
 
+/- Not actually used in proof but a reasonable lemma for showing how to deal with integrals -/
 lemma blahblah {a b c d : ℝ} {f : ℝ → ℝ}
   (hf : interval_integrable f real.measure_space.volume a b)
   (hac : a ≤ c) (hcd : c ≤ d) (hdb : d ≤ b) :

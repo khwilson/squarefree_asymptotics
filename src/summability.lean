@@ -17,6 +17,12 @@ open_locale topological_space interval big_operators filter asymptotics arithmet
 
 namespace squarefree_sums
 
+lemma not_summable_eq_zero {f : ℕ → ℝ} (hf : ¬ summable f) : ∑' (i : ℕ), f i = 0 :=
+begin
+  unfold tsum,
+  simp only [hf, dif_neg, not_false_iff],
+end
+
 lemma one_dirichlet_summable : ∀ (d : ℕ), 2 ≤ d → summable (λ (n : ℕ), ((n : ℝ) ^ d)⁻¹) :=
 begin
   intros d hd,
@@ -68,43 +74,18 @@ begin
   exact one_dirichlet_summable d hd,
 end
 
-lemma abs_sum_le_sum_abs' {f : ℕ → ℝ} {s : finset ℕ} :
-| ∑ d in s, f d | ≤ ∑ d in s, | f d | :=
-begin
-  apply finset.induction_on s,
-  simp only [finset.sum_empty, abs_zero],
-  {
-    intros i s his IH,
-    simp only [his, finset.sum_insert, not_false_iff],
-    exact (abs_add _ _).trans (add_le_add (le_refl (|f i|)) IH),
-  },
-end
-
 lemma abs_tsum_le_tsum_abs {f : ℕ → ℝ} : | ∑' i, f i | ≤ (∑' i, |f i|) :=
 begin
-  by_cases summable f,
-  have : has_sum f (∑' i, f i), exact summable.has_sum h,
-  unfold has_sum at this,
-  have hf : filter.tendsto
-    (λ (s : finset ℕ), |∑ (b : ℕ) in s, f b|) at_top (nhds (|∑' i, f i|)),
-    exact tendsto_abs this,
-
-  have : summable (λ n, |f n|), simp [summable_abs_iff, h],
-  have hg : has_sum (λ n, |f n|) (∑' i, |f i|), exact summable.has_sum this,
-  unfold has_sum at hg,
-
-  have h_le : ∀ (s : finset ℕ), (λ (s : finset ℕ), |∑ (b : ℕ) in s, f b|) s ≤ (λ (s : finset ℕ), ∑ (b : ℕ) in s, |f b|) s,
-  {
+  by_cases h : summable f,
+  { obtain ⟨d, hd⟩ := summable_abs_iff.mpr h,
+    obtain ⟨c, hc⟩ := h,
+    rw [hc.tsum_eq, hd.tsum_eq],
+    apply le_of_tendsto_of_tendsto ((continuous_abs.tendsto c).comp hc) hd,
+    apply eventually_of_forall,
     intros s,
-    simp,
-    exact abs_sum_le_sum_abs f s,
-  },
-
-  exact le_of_tendsto_of_tendsto' hf hg h_le,
-
-  have : ¬ summable (λ n, |f n|), simp [summable_abs_iff, h],
-  unfold tsum,
-  simp [h, this],
+    exact finset.abs_sum_le_sum_abs _ s, },
+  { unfold tsum,
+    simp [h, (not_iff_not.mpr summable_abs_iff).mpr h], },
 end
 
 lemma abs_tsum_nonneg_eq_tsum
@@ -115,12 +96,10 @@ lemma abs_tsum_nonneg_eq_tsum
 :=
 begin
   by_cases h : summable f,
-  obtain ⟨c, hc⟩ := h,
-  rw has_sum.tsum_eq hc,
-  apply abs_of_nonneg,
-  exact has_sum_mono has_sum_zero hc hf,
-  unfold tsum,
-  simp [h],
+  { obtain ⟨c, hc⟩ := h,
+    rw has_sum.tsum_eq hc,
+    exact abs_of_nonneg (has_sum_mono has_sum_zero hc hf), },
+  { simp [h, not_summable_eq_zero], },
 end
 
 lemma summable_of_eventually_zero
@@ -502,17 +481,6 @@ begin
     skip, congr, funext, rw ite_lt_floor' hb i,
   },
   exact tsum_sub_head_eq_tail hg,
-end
-
-lemma not_summable_eq_zero
-{f : ℕ → ℝ}
-(hf : ¬ summable f)
-:
-∑' (i : ℕ), f i = 0
-:=
-begin
-  unfold tsum,
-  simp [hf],
 end
 
 lemma shift_sum

@@ -203,18 +203,6 @@ begin
   exact ne_of_lt (calc n ≤ max' s hs : le_max' s n H ... < n : hn) rfl,
 end
 
-lemma tendsto_abs {f : finset ℕ → ℝ} {a : ℝ} (h : filter.tendsto f filter.at_top (nhds a)) : filter.tendsto (λ n, |f n|) filter.at_top (nhds (|a|)) :=
-begin
-  rw ← real.norm_eq_abs,
-  conv {
-    congr,
-    funext,
-    rw ← real.norm_eq_abs,
-  },
-  apply filter.tendsto.norm,
-  simp [h],
-end
-
 lemma finset.subset_finset_min_max
 [linear_order R]
 [locally_finite_order R]
