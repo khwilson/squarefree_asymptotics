@@ -89,8 +89,7 @@ begin
       rw lt_succ_iff,
     },
     exact hint k this,
-    specialize hn this,
-    exact interval_integrable.trans hn (hint (m + n) (by {apply nat.add_lt_add_left, rw lt_succ_iff})),
+    exact interval_integrable.trans (hn this) (hint (m + n) (by {apply nat.add_lt_add_left, rw lt_succ_iff})),
   },
 end
 
@@ -372,7 +371,7 @@ begin
       intros h',
       exfalso,
       exact this.not_lt h', },
-    refine integrable_on.congr_fun _ this (by simp),
+    refine integrable_on.congr_fun _ this measurable_set_Ioo,
     have : set.Ioc (a : ℝ) ↑b =ᵐ[real.measure_space.volume] set.Ioo (a : ℝ) ↑b,
     {
       rw filter.eventually_eq_set,
@@ -406,10 +405,7 @@ begin
 
   have : ∀ (x : ℝ), x ∈ set.Icc (a : ℝ) ↑b → f ⌈x⌉₊ ≤ f x, {
     intros x hx,
-    apply hf,
-    exact hx,
-    exact ceil_of_Icc_mem_Icc hx,
-    exact le_ceil x,
+    apply hf hx (ceil_of_Icc_mem_Icc hx) (le_ceil x),
   },
   conv {
     to_lhs,
