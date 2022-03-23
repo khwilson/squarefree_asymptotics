@@ -238,54 +238,6 @@ begin
   rw convert_finite_sum_to_interval_integral' hab,
 end
 
-lemma somethingblah
-{a b : ℕ}
-{x : ℝ}
-:
-x ∈ set.Ioo (a : ℝ) ↑b → (⌊x⌋₊ : ℝ) + 1 ∈ set.Icc (a : ℝ) ↑b
-:=
-begin
-  simp,
-  intros is_gt is_lt,
-  have : (1 : ℝ) = ↑(1 : ℕ), simp,
-  split,
-  rw this,
-  rw ← cast_add,
-  rw cast_le,
-  calc a ≤ ⌊x⌋₊ : le_floor (le_of_lt is_gt) ... ≤ ⌊x⌋₊ + 1 : le_succ ⌊x⌋₊,
-  rw this,
-  rw ← cast_add,
-  rw cast_le,
-  have zero_le_x : 0 ≤ x,
-  {
-    have : 0 ≤ a, by simp,
-    calc (0 : ℝ) ≤ ↑a : cast_le.mpr this ... ≤ x : le_of_lt is_gt,
-  },
-  have : ⌊x⌋₊ < b, {
-    exact cast_lt.mp (calc ↑⌊x⌋₊ ≤ x : floor_le zero_le_x ... < ↑b : is_lt),
-  },
-  exact succ_le_of_lt this,
-end
-
-lemma castalot
-{a : ℕ} :
-⌊(a : ℝ)⌋₊ = a :=
-begin
-  simp,
-end
-
-lemma mem_Ico_Ioo
-{a b c : ℝ}
-(hc : c ∈ set.Ico a b)
-(hc' : c ≠ a) :
-c ∈ set.Ioo a b :=
-begin
-  simp,
-  simp at hc,
-  cases hc with ha hb,
-  exact ⟨lt_of_le_of_ne ha hc'.symm, hb⟩,
-end
-
 lemma mem_Icc_Ico
 {a b c : ℝ}
 (hc : c ∈ set.Icc a b)
@@ -297,30 +249,22 @@ begin
   exact lt_of_le_of_ne hc.right hc',
 end
 
-lemma somethingblah'
-{a b : ℕ}
-{x : ℝ}
-:
-x ∈ set.Ico (a : ℝ) ↑b → (⌊x⌋₊ : ℝ) + 1 ∈ set.Icc (a : ℝ) ↑b
-:=
+lemma somethingblah' {a b : ℕ} {x : ℝ} (hx : x ∈ set.Ico (a : ℝ) ↑b) :
+  (⌊x⌋₊ : ℝ) + 1 ∈ set.Icc (a : ℝ) ↑b :=
 begin
-  intros hx,
-  have hab : a < b,
-  {
-    simp at hx,
-    exact cast_lt.mp (calc ↑a ≤ x : hx.left ... < b : hx.right),
-  },
-  by_cases h : x = ↑a,
-  {
-    simp,
-    split,
-    rw [h, castalot], norm_cast, exact le_succ a,
-    rw [h, castalot], norm_cast, exact succ_le_of_lt hab,
-  },
-  {
-    exact somethingblah (mem_Ico_Ioo hx h),
-  },
+  rw set.mem_Ico at hx,
+  rw set.mem_Icc,
+  norm_cast,
+  have zero_le_x := le_trans (nat.cast_le.mpr $ zero_le a) hx.left,
+  split,
+  { exact le_trans ((nat.le_floor_iff zero_le_x).mpr hx.left) (le_succ ⌊x⌋₊), },
+  { have := calc ↑⌊x⌋₊ ≤ x : floor_le zero_le_x ... < b : hx.right,
+    norm_cast at this,
+    exact lt_iff_add_one_le.mp this, },
 end
+
+lemma somethingblah {a b : ℕ} {x : ℝ} (hx : x ∈ set.Ioo (a : ℝ) ↑b) :
+  (⌊x⌋₊ : ℝ) + 1 ∈ set.Icc (a : ℝ) ↑b := somethingblah' ⟨hx.left.le, hx.right⟩
 
 lemma fooooo
 {x y : ℝ}
@@ -335,10 +279,10 @@ ite (⌊y⌋₊ + 1 ≤ b) (f ↑(⌊y⌋₊ + 1)) (f ↑b) ≤ ite (⌊x⌋₊ 
 begin
   by_cases hy' : y = ↑b,
   {
-    have : ¬ (⌊y⌋₊ + 1  ≤ b), rw hy', rw castalot, simp,
+    have : ¬ (⌊y⌋₊ + 1  ≤ b), rw hy', rw floor_coe, simp,
     simp [this],
     by_cases hx' : x = ↑b,
-      have : ¬ (⌊x⌋₊ + 1  ≤ b), rw hx', rw castalot, simp,
+      have : ¬ (⌊x⌋₊ + 1  ≤ b), rw hx', rw floor_coe, simp,
       simp [this],
 
       have xxx : ↑(⌊x⌋₊ + 1) ∈ set.Icc (a : ℝ) ↑b, exact somethingblah' (mem_Icc_Ico hx hx'),
