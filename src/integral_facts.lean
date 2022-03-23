@@ -318,55 +318,33 @@ begin
 
 end
 
-lemma antitone_sum_le_integral
-{a b : ℕ}
-{f : ℝ → ℝ}
-(hab : a ≤ b)
-(hf : antitone_on f (set.Icc a b))
-:
-∑ x in finset.Ico (a + 1) (b + 1), f x  ≤ ∫ x in a..b, f x :=
+lemma antitone_sum_le_integral {a b : ℕ} {f : ℝ → ℝ} (hab : a ≤ b)
+  (hf : antitone_on f (set.Icc a b)) :
+  ∑ x in finset.Ico (a + 1) (b + 1), f x  ≤ ∫ x in a..b, f x :=
 begin
   rw shift_sum,
   have hf' : antitone_on f (set.Ioo (a : ℝ) ↑b), {
     intros x hx y hy hxy,
-    apply hf,
-    exact mem_Ioo_mem_Icc hx,
-    exact mem_Ioo_mem_Icc hy,
-    exact hxy,
+    exact hf ⟨hx.left.le, hx.right.le⟩ ⟨hy.left.le, hy.right.le⟩ hxy,
   },
   have hf_integrable : integrable_on f (set.Ioo (a : ℝ) ↑b), {
     by_cases hab' : a = b, simp [hab'],
     have hab' : a < b, exact lt_of_le_of_ne hab hab',
-    let blah := hf,
-    rw ← interval_eq_Icc (cast_le.mpr hab) at blah,
-    let foo := antitone_on.interval_integrable blah,
-    unfold interval_integrable at foo,
-    rcases foo with ⟨lfoo, rfoo⟩,
+    rw ← interval_eq_Icc (cast_le.mpr hab) at hf,
+    rcases (antitone_on.interval_integrable hf) with ⟨lfoo, _⟩,
     have : set.Ioc (a : ℝ) ↑b = (set.Ioo (a : ℝ) ↑b) ∪ {(b : ℝ)},
-    {
-      ext,
-      simp,
+    { ext,
+      simp only [set.mem_Ioo, set.mem_insert_iff, union_singleton],
       split,
-      rintros ⟨is_gt, is_lt⟩,
-      by_cases h : x = ↑b, simp [h],
-      right,
-      split,
-      exact is_gt,
-      exact lt_of_le_of_ne is_lt h,
-      intros h,
-      cases h,
-      rw h,
-      split,
-      exact cast_lt.mpr hab',
-      simp,
-      split,
-      exact h.left,
-      exact le_of_lt h.right,
-    },
+      { rintros ⟨hl, hr⟩,
+        simp [hl, (lt_or_eq_of_le hr).symm], },
+      { intros hx,
+        cases hx,
+        { simp [hab', hx], },
+        { exact ⟨hx.left, hx.right.le⟩, }, }, },
     rw this at lfoo,
     exact integrable_on.left_of_union lfoo,
-    apply is_locally_finite_measure_of_is_finite_measure_on_compacts,
-  },
+    apply is_locally_finite_measure_of_is_finite_measure_on_compacts, },
 
   let g := (λ (i : ℝ), f (i + 1)),
   have gequiv : ∀ (i : ℕ), g ↑i = f ↑(i + 1), simp,
@@ -385,23 +363,16 @@ begin
     let h := (λ x : ℝ, ite (⌊x⌋₊ + 1 ≤ b) (f ↑(⌊x⌋₊ + 1)) (f ↑b)),
     have hequiv : ∀ (x : ℝ), h x = ite (⌊x⌋₊ + 1 ≤ b) (f ↑(⌊x⌋₊ + 1)) (f ↑b), { intros x, by_cases hh : ⌊x⌋₊ + 1 ≤ b, simp [h, hh],},
     have : eq_on h (λ x : ℝ, g ↑⌊x⌋₊) (set.Ioo (a : ℝ) ↑b),
-    {
-      unfold eq_on,
-      intros x hx,
-      have : ⌊x⌋₊ + 1 ≤ b, {
-        have foo : (⌊x⌋₊ : ℝ) + 1 ∈ set.Icc (a : ℝ) ↑b, exact somethingblah hx,
-        simp at foo,
-        have : (1 : ℝ) = ↑(1 : ℕ), simp,
-        rw this at foo,
-        rw ← cast_add at foo,
-        rw cast_le at foo,
-        rw cast_le at foo,
-        exact foo.right,
-      },
+    { intros x hx,
+      have : ⌊x⌋₊ + 1 ≤ b,
+      { have := (somethingblah hx).right,
+        norm_cast at this,
+        exact this, },
       rw hequiv x,
-      rw gequiv ⌊x⌋₊,
-      simp [this],
-    },
+      simp only [cast_one, cast_add, not_le, ite_eq_left_iff],
+      intros h',
+      exfalso,
+      exact this.not_lt h', },
     refine integrable_on.congr_fun _ this (by simp),
     have : set.Ioc (a : ℝ) ↑b =ᵐ[real.measure_space.volume] set.Ioo (a : ℝ) ↑b,
     {
@@ -425,15 +396,11 @@ begin
     },
     refine integrable_on.congr_set_ae _ this.symm,
     have : antitone_on h (set.Icc (a : ℝ) ↑b),
-    {
-      intros x hx y hy hxy,
+    { intros x hx y hy hxy,
       rw hequiv x, rw hequiv y,
-      exact fooooo hxy hf hx hy,
-    },
+      exact fooooo hxy hf hx hy, },
     rw ← interval_eq_Icc (cast_le.mpr hab) at this,
-    let blah := antitone_on.interval_integrable this,
-    unfold interval_integrable at blah,
-    rcases blah with ⟨lfoo, rfoo⟩,
+    rcases this.interval_integrable with ⟨lfoo, rfoo⟩,
     exact lfoo,
     apply is_locally_finite_measure_of_is_finite_measure_on_compacts,
   },
