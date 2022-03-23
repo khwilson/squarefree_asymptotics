@@ -190,42 +190,21 @@ begin
   exact sum_integral_adjacent_intervals'' hmn hint,
 end
 
-lemma antitone_integral_le_sum
-{a b : ℕ}
-{f : ℝ → ℝ}
-(hab : a ≤ b)
-(hf : antitone_on f (set.Icc a b)) :
-∫ x in a..b, f x ≤ ∑ x in finset.Ico a b, f x :=
+lemma antitone_integral_le_sum {a b : ℕ} {f : ℝ → ℝ} (hab : a ≤ b)
+  (hf : antitone_on f (set.Icc a b)) : ∫ x in a..b, f x ≤ ∑ x in finset.Ico a b, f x :=
 begin
-  -- This (a : ℝ) is necessary or else confusion happens
-  have : ∀ (x : ℝ), x ∈ set.Icc (a : ℝ) ↑b → f x ≤ f ⌊x⌋₊, {
-    intros x hx,
-    apply hf,
-    exact floor_of_Icc_mem_Icc hx,
-    exact hx,
-    have : ↑a ≤ x, {
-      simp at hx,
-      exact hx.left,
-    },
-    have : 0 ≤ x, calc (0 : ℝ) ≤ ↑a : by simp ... ≤ x : this,
-    exact floor_le this,
-  },
+  have : ∀ (x : ℝ), x ∈ set.Icc (a : ℝ) ↑b → f x ≤ f ⌊x⌋₊,
+  { intros x hx,
+    apply hf (floor_of_Icc_mem_Icc hx) hx,
+    exact floor_le (calc (0 : ℝ) ≤ ↑a : by simp ... ≤ x : hx.left), },
   transitivity,
   refine interval_integral.integral_mono_on (cast_le.mpr hab) _ _ this,
   apply antitone_on.interval_integrable,
-  simp,
   rwa interval_eq_Icc (cast_le.mpr hab),
   apply antitone_on.interval_integrable,
   rwa interval_eq_Icc (cast_le.mpr hab),
-  unfold antitone_on,
   intros c hc d hd hcd,
-  have u1 : (⌊c⌋₊ : ℝ) ≤ ⌊d⌋₊, {
-    rw cast_le,
-    exact floor_mono hcd,
-  },
-  have u2 : ↑⌊c⌋₊ ∈ set.Icc (a : ℝ) ↑b, exact floor_of_Icc_mem_Icc hc,
-  have u3 : ↑⌊d⌋₊ ∈ set.Icc (a : ℝ) ↑b, exact floor_of_Icc_mem_Icc hd,
-  exact hf u2 u3 u1,
+  exact hf (floor_of_Icc_mem_Icc hc) (floor_of_Icc_mem_Icc hd) (cast_le.mpr $floor_mono hcd),
   conv {
     to_rhs,
     congr,
@@ -247,8 +226,9 @@ begin
   exact lt_of_le_of_ne hc.right hc',
 end
 
-lemma somethingblah' {a b : ℕ} {x : ℝ} (hx : x ∈ set.Ico (a : ℝ) ↑b) :
-  (⌊x⌋₊ : ℝ) + 1 ∈ set.Icc (a : ℝ) ↑b :=
+lemma somethingblah' {R : Type*} [linear_ordered_semiring R] [floor_semiring R]
+  {a b : ℕ} {x : R} (hx : x ∈ set.Ico (a : R) ↑b) :
+  (⌊x⌋₊ : R) + 1 ∈ set.Icc (a : R) ↑b :=
 begin
   rw set.mem_Ico at hx,
   rw set.mem_Icc,
@@ -261,8 +241,9 @@ begin
     exact lt_iff_add_one_le.mp this, },
 end
 
-lemma somethingblah {a b : ℕ} {x : ℝ} (hx : x ∈ set.Ioo (a : ℝ) ↑b) :
-  (⌊x⌋₊ : ℝ) + 1 ∈ set.Icc (a : ℝ) ↑b := somethingblah' ⟨hx.left.le, hx.right⟩
+lemma somethingblah {R : Type*} [linear_ordered_semiring R] [floor_semiring R]
+  {a b : ℕ} {x : R} (hx : x ∈ set.Ioo (a : R) ↑b) :
+  (⌊x⌋₊ : R) + 1 ∈ set.Icc (a : R) ↑b := somethingblah' ⟨hx.left.le, hx.right⟩
 
 lemma fooooo
 {x y : ℝ}
@@ -435,32 +416,15 @@ begin
   exact nat.lt_succ_floor x,
 end
 
-lemma blahblah
-{a b c d : ℝ}
-{f : ℝ → ℝ}
-(hf : interval_integrable f real.measure_space.volume a b)
-(hac : a ≤ c)
-(hcd : c ≤ d)
-(hdb : d ≤ b)
-:
-interval_integrable f real.measure_space.volume c d
-:=
+lemma blahblah {a b c d : ℝ} {f : ℝ → ℝ}
+  (hf : interval_integrable f real.measure_space.volume a b)
+  (hac : a ≤ c) (hcd : c ≤ d) (hdb : d ≤ b) :
+  interval_integrable f real.measure_space.volume c d :=
 begin
-  have hab : a ≤ b, calc a ≤ c : hac ... ≤ d : hcd ... ≤ b : hdb,
-  unfold interval_integrable,
-  unfold interval_integrable at hf,
-  simp [hcd],
-  have : set.Ioc c d ⊆ set.Ioc a b, {
-    unfold has_subset.subset,
-    unfold set.subset,
-    intros x hx,
-    simp at hx,
-    simp,
-    split,
-    calc a ≤ c : hac ... < x : hx.left,
-    calc x ≤ d : hx.right ... ≤ b : hdb,
-  },
-  exact integrable_on.mono_set hf.left this,
+  rw interval_integrable_iff,
+  apply integrable_on.mono_set hf.left,
+  rw interval_oc_of_le hcd,
+  exact Ioc_subset_Ioc hac hdb,
 end
 
 lemma blech
