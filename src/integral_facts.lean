@@ -41,6 +41,16 @@ begin
   exact aa,
 end
 
+lemma foooo {a b : ℝ} (hab : a < b): (set.Ioo a b)ᶜ ∩ (set.Ioc a b) = {b} :=
+begin
+  ext,
+  rw mem_singleton_iff,
+  simp only [set.mem_Ioc, set.mem_Ioo, mem_inter_eq, not_and, not_lt, mem_compl_eq],
+  split,
+  { rintros ⟨ha, hb, hc⟩, linarith [hc, ha hb], },
+  { intros h, exact ⟨λ _, h.symm.le, lt_of_lt_of_le hab h.symm.le, h.le⟩, },
+end
+
 lemma real_constant_on_interval_integrable
 (a b : ℝ) (hab : a < b) (f : ℝ → ℝ) (hf : ∃c, ∀ (x : ℝ), x ∈ set.Ioo a b → f x = c) :
 interval_integrable f real.measure_space.volume a b :=
@@ -48,47 +58,16 @@ begin
   rw interval_integrable_iff,
   rcases hf with ⟨c, hc⟩,
   have : measure_theory.integrable_on (λ x, c) (set.interval_oc a b) real.measure_space.volume,
-  {
-    unfold measure_theory.integrable_on,
-    apply continuous.integrable_on_interval_oc,
-    exact continuous_const,
-  },
+  { exact continuous_const.integrable_on_interval_oc, },
   apply measure_theory.integrable_on.congr_fun' this,
   rw eventually_eq_iff_exists_mem,
   use set.Ioo a b,
   split,
-  rw measure_theory.mem_ae_iff,
-  conv {
-    congr,
-    simp,
-  },
-  have : (set.Ioo a b)ᶜ ∩ (set.interval_oc a b) = {b},
-  {
-    ext,
-    simp,
-    split,
-    rintros ⟨ha, hb⟩,
-    unfold set.interval_oc at hb,
-    simp [hab] at hb,
-    rcases hb with ⟨hba, hbb⟩,
-    cases hba,
-    specialize ha hba,
-    cases hbb,
-    linarith,
-    linarith,
-    cases hbb,
-    linarith,
-    linarith,
-    intros hx,
-    simp [hx],
-    unfold set.interval_oc,
-    simp [hab],
-  },
-  rw this,
-  exact real.volume_singleton,
-  unfold set.eq_on,
-  intros x hx,
-  exact (hc x hx).symm,
+  { rw mem_ae_iff,
+    simp only [measurable_set.compl_iff, measurable_set_Ioo, measure.restrict_apply],
+    rw [interval_oc_of_le (le_of_lt hab), foooo hab],
+    exact real.volume_singleton, },
+  { intros x hx, exact (hc x hx).symm, },
 end
 
 lemma interval_integrable.trans_iterate'
