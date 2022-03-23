@@ -41,11 +41,8 @@ begin
   exact h,
 end
 
-lemma bounded_dirichlet_summable
-(f : ℕ → ℝ)
-(hC : ∃ C, ∀ (n : ℕ), |f n| ≤ C) :
- ∀ (d : ℕ), 2 ≤ d
- → summable (λ (n : ℕ), (f n) * ((n : ℝ) ^ d)⁻¹):=
+lemma bounded_dirichlet_summable (f : ℕ → ℝ) (hC : ∃ C, ∀ (n : ℕ), |f n| ≤ C) :
+ ∀ (d : ℕ), 2 ≤ d → summable (λ (n : ℕ), (f n) * ((n : ℝ) ^ d)⁻¹) :=
 begin
   intros d hd,
   rw ← summable_abs_iff,
@@ -88,12 +85,8 @@ begin
     simp [h, (not_iff_not.mpr summable_abs_iff).mpr h], },
 end
 
-lemma abs_tsum_nonneg_eq_tsum
-{f : ℕ → ℝ}
-(hf : ∀ (n : ℕ), 0 ≤ f n)
-:
-|∑' (i : ℕ), f i| = ∑' (i : ℕ), f i
-:=
+lemma abs_tsum_nonneg_eq_tsum {f : ℕ → ℝ} (hf : ∀ (n : ℕ), 0 ≤ f n) :
+  |∑' (i : ℕ), f i| = ∑' (i : ℕ), f i :=
 begin
   by_cases h : summable f,
   { obtain ⟨c, hc⟩ := h,
