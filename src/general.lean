@@ -158,37 +158,6 @@ begin
   rw [mem_union, mem_insert, mem_singleton, or_comm],
 end
 
-lemma sqrt_one_eq_one : sqrt 1 = 1 := by { symmetry, rw eq_sqrt, simp, linarith, }
-
-lemma one_le_sqrt {n : ℕ} (hn : 1 ≤ n) : 1 ≤ sqrt n :=
-begin
-  rw sqrt_one_eq_one.symm,
-  exact sqrt_le_sqrt hn,
-end
-
-lemma nat_sqrt_le_real_sqrt
-{a : ℕ} : ↑(sqrt a) ≤ real.sqrt ↑a :=
-begin
-  rw real.le_sqrt,
-  norm_cast,
-  exact nat.sqrt_le' a,
-  simp, simp,
-end
-
-lemma real_sqrt_le_nat_sqrt_succ
-{a : ℕ}
-:
-real.sqrt ↑a ≤ sqrt a + 1
-:=
-begin
-  rw real.sqrt_le_iff,
-  split,
-  norm_cast,
-  simp,
-  norm_cast,
-  exact le_of_lt (nat.lt_succ_sqrt' a),
-end
-
 lemma not_mem_if_gt_max'
 [linear_order R]
 {s : finset R}

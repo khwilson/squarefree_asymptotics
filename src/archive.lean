@@ -3,6 +3,7 @@ import number_theory.arithmetic_function
 import algebra.squarefree
 import algebra.order.field
 import data.list.intervals
+import data.real.sqrt
 import tactic
 import measure_theory.integral.interval_integral
 import analysis.special_functions.integrals
