@@ -146,9 +146,7 @@ lemma ssqrt_eq {n : ℕ} : ssqrt (n * n) = n :=
 begin
   unfold ssqrt,
   rw sqrt_eq,
-  have : is_square (n * n), {
-    use n,
-  },
+  have : is_square (n * n), use n,
   simp [this],
 end
 
@@ -171,28 +169,19 @@ begin
   simp [h],
 end
 
-lemma prime_not_square {p : ℕ} : nat.prime p → ¬ is_square p :=
+lemma nat.prime.not_square {p : ℕ} (hp : nat.prime p) : ¬ is_square p :=
 begin
-  intros hp,
-  by_contradiction H,
-  cases H with s hs,
-  have : s ∣ p,
-    calc s ∣ s * s : dvd_mul_left s s
-      ... = p : hs,
-  rw dvd_prime hp at this,
-  cases this,
-  rw this at hs,
-  simp at hs,
-  rw ← hs at hp,
-  exact not_prime_one hp,
-  rw this at hs,
-  have : p = p * p, simp [hs],
-  rw nat_idemp_iff_zero_one at this,
-  cases this,
-  rw this_1 at hp,
-  exact not_prime_zero hp,
-  rw this_1 at hp,
-  exact not_prime_one hp,
+  rintros ⟨s, hs⟩,
+  let focus := dvd_mul_left s s,
+  rw [hs, dvd_prime hp] at focus,
+  cases focus,
+  { apply nat.not_prime_one,
+    rw [focus, mul_one] at hs,
+    rwa hs.symm at hp, },
+  { rw focus at hs,
+    cases nat_idemp_iff_zero_one.mp hs.symm,
+    { rw h at hp, exact not_prime_zero hp, },
+    { rw h at hp, exact not_prime_one hp, }, },
 end
 
 lemma prod_squares_is_square {a b : ℕ} (ha : is_square a) (hb : is_square b) : is_square (a * b) :=
@@ -226,78 +215,16 @@ end
 
 lemma coprime_ssqrt {a b : ℕ} (ha : is_square a) (hb : is_square b) (hab : a.coprime b) : (ssqrt a).coprime (ssqrt b) :=
 begin
-  unfold ssqrt,
-  simp [ha, hb],
+  simp only [ssqrt, ha, hb, if_true],
   cases ha with a' ha',
   cases hb with b' hb',
   rw [← ha', ← hb'],
   rw [sqrt_eq, sqrt_eq],
-  unfold coprime,
-  by_contradiction H,
-  have one_lt_gcd : 1 < a'.gcd b', {
-    by_cases a = 0,
-    {
-      rw h at hab,
-      simp at hab,
-      rw hab at hb',
-      rw nat.mul_eq_one_iff at hb',
-      rw h at ha',
-      rw nat.mul_eq_zero at ha',
-      simp at ha',
-      simp at hb',
-      rw ha' at H,
-      rw hb' at H,
-      simp at H,
-      exfalso,
-      exact H,
-    },
-    have : a' ≠ 0, {
-      by_contradiction H,
-      rw H at ha',
-      simp at ha',
-      exact h ha'.symm,
-    },
-    have : 0 < a'.gcd b', {
-      exact gcd_pos_of_pos_left b' (zero_lt_iff.mpr this),
-    },
-    have : 2 ≤ a'.gcd b', {
-      exact two_le_nat_iff_not_zero_one.mpr ⟨zero_lt_iff.mp this, H⟩,
-    },
-    linarith,
-  },
-  have gcd_dvd_b : (a'.gcd b') ∣ b,
-    calc (a'.gcd b') ∣ b' : @nat.gcd_dvd_right a' b'
-      ... ∣ b : dvd.intro b' hb',
-
-  have gcd_dvd_a : (a'.gcd b') ∣ a,
-    calc (a'.gcd b') ∣ a' : @nat.gcd_dvd_left a' b'
-      ... ∣ a : dvd.intro a' ha',
-
-  have gcd_dvd_gcd : (a'.gcd b') ∣ (a.gcd b), {
-    apply @nat.dvd_gcd,
-    exact gcd_dvd_a,
-    exact gcd_dvd_b,
-  },
-  have : 0 < (a.gcd b), {
-    apply gcd_pos_of_pos_left,
-    by_contradiction H,
-    simp at H,
-    rw H at ha',
-    simp at ha',
-    rw ha' at one_lt_gcd,
-    simp at one_lt_gcd,
-    rw H at hab,
-    simp at hab,
-    rw hab at hb',
-    rw nat.mul_eq_one_iff at hb',
-    simp at hb',
-    linarith,
-  },
-  have : (a'.gcd b') ≤ (a.gcd b), {
-    exact le_of_dvd this gcd_dvd_gcd,
-  },
-  have : a.gcd b ≠ 1, linarith,
-  exact this hab,
+  have haa : a' ∣ a, calc a' ∣ a' * a' : dvd_mul_left a' a' ... = a : ha',
+  have hbb : b' ∣ b, calc b' ∣ b' * b' : dvd_mul_left b' b' ... = b : hb',
+  apply nat.coprime.coprime_dvd_left haa,
+  apply nat.coprime.coprime_dvd_right hbb,
+  exact hab,
 end
 
 
