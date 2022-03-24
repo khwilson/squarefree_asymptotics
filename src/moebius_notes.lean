@@ -559,7 +559,7 @@ begin
   unfold sum_μ_times_n_over_d2,
   rw ← finset.sum_sub_distrib,
   transitivity,
-  exact abs_sum_le_sum_abs',
+  exact finset.abs_sum_le_sum_abs _ _,
   have u1 : ∀ (d : ℕ), b.div (d ^ 2) = b / (d ^ 2), {
     intros d,
     unfold has_div.div,
@@ -590,8 +590,7 @@ begin
     rw this,
     rw int.cast_le,
     exact abs_mu_le_one,
-    have : 0 < d ^ 2, { rw pow_two, exact (zero_lt_mul_left hd).mpr hd,},
-    exact floor_off_by_le_one this,
+    exact floor_off_by_le_one,
   },
   have u4 : ∑ (d : ℕ) in finset.Ico 1 (sqrt b), |((μ d) : ℝ)| * |(b : ℝ) / ↑(d ^ 2) - ↑(b / d ^ 2)| ≤ ∑ (d : ℕ) in finset.Ico 1 (sqrt b), 1,
   {
@@ -833,7 +832,7 @@ begin
       calc (0 : ℝ) = ↑(0 : ℕ) : by simp ... ≤ ↑d : cast_le.mpr (zero_le d) ... ≤ x : hx.left,
   },
   rw this,
-  apply (hf.comp tendsto_coe_nat_at_top_at_top),
+  refine tendsto.comp _ tendsto_coe_nat_at_top_at_top,
   exact goal ↑c (-2) hc_cast' (by linarith),
   {
     unfold antitone_on,

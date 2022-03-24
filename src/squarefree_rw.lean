@@ -116,7 +116,7 @@ end
 
 theorem squarefree_nat_eq_tμ : squarefree_nat = tμ :=
 begin
-  rw multiplicative_eq_iff_eq_on_prime_powers is_multiplicative_squarefree_nat is_multiplicative_tμ,
+  rw arithmetic_function.is_multiplicative.eq_iff_eq_on_prime_powers squarefree_nat is_multiplicative_squarefree_nat tμ is_multiplicative_tμ,
   intros p i hp,
   induction i with i hi,
   simp [is_multiplicative_tμ, is_multiplicative_squarefree_nat],

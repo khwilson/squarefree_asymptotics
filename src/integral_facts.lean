@@ -70,10 +70,10 @@ begin
 end
 
 lemma interval_integrable.trans_iterate'
-  {α : Type*} [linear_order α] [measurable_space α] [topological_space α] [order_closed_topology α] [opens_measurable_space α]
-  {ν : measure α}
-  {a : ℕ → α} {m n : ℕ}
-  {f : α → ℝ}
+  {α : Type*} [measurable_space α] [normed_group α]
+  {ν : measure ℝ}
+  {a : ℕ → ℝ} {m n : ℕ}
+  {f : ℝ → α}
   (hint : ∀ (k : ℕ), (k < m + n) → interval_integrable f ν (a k) (a $ k+1)) :
   interval_integrable f ν (a m) (a (m + n)) :=
 begin
@@ -94,10 +94,9 @@ begin
 end
 
 lemma sum_integral_adjacent_intervals'
-  {α : Type*} [linear_order α] [measurable_space α] [topological_space α] [order_closed_topology α] [opens_measurable_space α]
-  {ν : measure α}
-  {a : ℕ → α} {m n : ℕ}
-  {f : α → ℝ}
+  {ν : measure ℝ}
+  {a : ℕ → ℝ} {m n : ℕ}
+  {f : ℝ → ℝ}
   (hint : ∀ (k : ℕ), (k < m + n) → interval_integrable f ν (a k) (a $ k+1)) :
   ∑ (k : ℕ) in finset.Ico m (m + n), ∫ x in (a k)..(a $ k+1), f x ∂ν = ∫ x in (a m)..(a (m + n)), f x ∂ν :=
 begin
@@ -121,10 +120,9 @@ begin
 end
 
 lemma sum_integral_adjacent_intervals''
-  {α : Type*} [linear_order α] [measurable_space α] [topological_space α] [order_closed_topology α] [opens_measurable_space α]
-  {ν : measure α}
-  {a : ℕ → α} {m n : ℕ}
-  {f : α → ℝ}
+  {ν : measure ℝ}
+  {a : ℕ → ℝ} {m n : ℕ}
+  {f : ℝ → ℝ}
   (hmn : m ≤ n)
   (hint : ∀ (k : ℕ), (k < n) → interval_integrable f ν (a k) (a $ k+1)) :
   ∑ (k : ℕ) in finset.Ico m n, ∫ x in (a k)..(a $ k+1), f x ∂ν = ∫ x in (a m)..(a n), f x ∂ν :=
