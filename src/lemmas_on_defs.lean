@@ -13,17 +13,18 @@ open_locale topological_space interval big_operators filter asymptotics arithmet
 
 namespace squarefree_sums
 
-lemma is_square_one : is_square 1 := by { use 1, ring, }
+lemma square_one : square 1 := by { use 1, ring, }
 
-lemma is_square_prime_pow_iff_pow_even : ∀ (p i : ℕ), nat.prime p → (is_square (p ^ i) ↔ even i) :=
+lemma square_prime_pow_iff_pow_even : ∀ (p i : ℕ), nat.prime p → (square (p ^ i) ↔ even i) :=
 begin
   intros p i hp,
   split,
-  unfold is_square,
+  unfold square,
   rintros ⟨s, hs⟩,
+  rw pow_two at hs,
   have : s ∣ p ^ i,
     calc s ∣ s * s : dvd_mul_left s s
-      ... = p ^ i : hs,
+      ... = p ^ i : hs.symm,
   rw nat.dvd_prime_pow hp at this,
   rcases this with ⟨k, hk, s_eq⟩,
   rw s_eq at hs,
@@ -31,31 +32,29 @@ begin
   have two_le_p : 2 ≤ p, exact hp.two_le,
   rw ← exp_eq_iff_pow_eq two_le_p at hs,
   use k,
-  rw ← hs,
+  rw ← hs.symm,
   ring,
 
   rintros ⟨k, hk⟩,
   use p ^ k,
   rw hk,
-  rw ← pow_add,
-  simp,
-  rw ← exp_eq_iff_pow_eq hp.two_le,
-  ring,
+  rw [←pow_mul, mul_comm],
+
 end
 
-lemma not_is_square_prime {p : ℕ} (hp : nat.prime p) : ¬ is_square p :=
+lemma not_square_prime {p : ℕ} (hp : nat.prime p) : ¬square p :=
 begin
   by_contradiction H,
   have : p = p ^ 1, ring,
   rw this at H,
   have : ¬ even 1, simp,
-  exact this ((is_square_prime_pow_iff_pow_even p 1 hp).mp H),
+  exact this ((square_prime_pow_iff_pow_even p 1 hp).mp H),
 end
 
 lemma ssqrt_one : ssqrt 1 = 1 :=
 begin
   unfold ssqrt,
-  simp [is_square_one],
+  simp [square_one],
 end
 
 lemma ssqrt_prime {p : ℕ} (hp : nat.prime p) : ssqrt p = 0 :=
@@ -64,7 +63,7 @@ begin
   simp,
   intros p,
   exfalso,
-  exact not_is_square_prime hp p,
+  exact not_square_prime hp p,
 end
 
 lemma sμ_prime_pow_le_three : ∀ (p i : ℕ), nat.prime p → 3 ≤ i → sμ (p ^ i) = 0 :=
@@ -76,7 +75,7 @@ begin
   unfold ssqrt,
   by_cases even i,
   {
-    have : is_square (p ^ i), exact (is_square_prime_pow_iff_pow_even p i hp).mpr h,
+    have : square (p ^ i), exact (square_prime_pow_iff_pow_even p i hp).mpr h,
     simp [this],
     let fooo := h,
     cases h with k hk,
@@ -116,9 +115,9 @@ begin
     simp [this],
   },
   {
-    have : ¬ is_square (p ^ i), {
+    have : ¬square (p ^ i), {
       by_contradiction H,
-      rw (is_square_prime_pow_iff_pow_even p i hp) at H,
+      rw (square_prime_pow_iff_pow_even p i hp) at H,
       exact h H,
     },
     simp [this],
@@ -145,7 +144,7 @@ lemma ssqrt_eq {n : ℕ} : ssqrt (n * n) = n :=
 begin
   unfold ssqrt,
   rw sqrt_eq,
-  have : is_square (n * n), use n,
+  have : square (n * n), use n, rw pow_two,
   simp [this],
 end
 
@@ -168,59 +167,64 @@ begin
   simp [h],
 end
 
-lemma nat.prime.not_square {p : ℕ} (hp : nat.prime p) : ¬ is_square p :=
+lemma nat.prime.not_square {p : ℕ} (hp : nat.prime p) : ¬square p :=
 begin
   rintros ⟨s, hs⟩,
   let focus := dvd_mul_left s s,
-  rw [hs, dvd_prime hp] at focus,
+  rw pow_two at hs,
+  rw [←hs, dvd_prime hp] at focus,
   cases focus,
   { apply nat.not_prime_one,
     rw [focus, mul_one] at hs,
-    rwa hs.symm at hp, },
+    rwa hs at hp, },
   { rw focus at hs,
-    cases nat_idemp_iff_zero_one.mp hs.symm,
+    cases nat_idemp_iff_zero_one.mp hs,
     { rw h at hp, exact not_prime_zero hp, },
     { rw h at hp, exact not_prime_one hp, }, },
 end
 
-lemma prod_squares_is_square {a b : ℕ} (ha : is_square a) (hb : is_square b) : is_square (a * b) :=
+lemma prod_squares_square {a b : ℕ} (ha : square a) (hb : square b) : square (a * b) :=
 begin
   cases ha with a' ha',
   cases hb with b' hb',
   use a' * b',
-  rw [← ha', ← hb'],
+  rw [ha', hb'],
   ring,
 end
 
-lemma coprime_prod_not_squares_is_not_square {a b : ℕ} (hab : a.coprime b) (ha : ¬ is_square a) : ¬ is_square (a * b) :=
+lemma coprime_prod_not_squares_is_not_square {a b : ℕ} (hab : a.coprime b) (ha : ¬square a) : ¬square (a * b) :=
 begin
   by_contradiction H,
-  unfold is_square at H,
+  unfold square at H,
   rcases H with ⟨s, hs⟩,
+  rw pow_two at hs,
   have : a = (s.gcd a) * (s.gcd a), {
-    exact (nat.gcd_mul_gcd_of_coprime_of_mul_eq_mul hab hs).symm,
+    exact (nat.gcd_mul_gcd_of_coprime_of_mul_eq_mul hab hs.symm).symm,
   },
-  unfold is_square at ha,
+  unfold square at ha,
   push_neg at ha,
-  exact (ha $ s.gcd a).symm this,
+  specialize ha (s.gcd a),
+  rw pow_two at ha,
+  exact ha this,
 end
 
-lemma coprime_prod_not_squares_is_not_square' {a b : ℕ} (hab : a.coprime b) (hb : ¬ is_square b) : ¬ is_square (a * b) :=
+lemma coprime_prod_not_squares_is_not_square' {a b : ℕ} (hab : a.coprime b) (hb : ¬square b) : ¬square (a * b) :=
 begin
   rw mul_comm,
   have hab' : b.coprime a, exact (coprime_comm.mp) hab,
   exact coprime_prod_not_squares_is_not_square hab' hb,
 end
 
-lemma coprime_ssqrt {a b : ℕ} (ha : is_square a) (hb : is_square b) (hab : a.coprime b) : (ssqrt a).coprime (ssqrt b) :=
+lemma coprime_ssqrt {a b : ℕ} (ha : square a) (hb : square b) (hab : a.coprime b) : (ssqrt a).coprime (ssqrt b) :=
 begin
   simp only [ssqrt, ha, hb, if_true],
   cases ha with a' ha',
   cases hb with b' hb',
-  rw [← ha', ← hb'],
-  rw [sqrt_eq, sqrt_eq],
-  have haa : a' ∣ a, calc a' ∣ a' * a' : dvd_mul_left a' a' ... = a : ha',
-  have hbb : b' ∣ b, calc b' ∣ b' * b' : dvd_mul_left b' b' ... = b : hb',
+  rw pow_two at ha',
+  rw pow_two at hb',
+  rw [ha', hb', sqrt_eq, sqrt_eq],
+  have haa : a' ∣ a, calc a' ∣ a' * a' : dvd_mul_left a' a' ... = a : ha'.symm,
+  have hbb : b' ∣ b, calc b' ∣ b' * b' : dvd_mul_left b' b' ... = b : hb'.symm,
   apply nat.coprime.coprime_dvd_left haa,
   apply nat.coprime.coprime_dvd_right hbb,
   exact hab,

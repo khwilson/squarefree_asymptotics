@@ -11,12 +11,21 @@ open_locale topological_space interval big_operators filter asymptotics arithmet
 
 namespace squarefree_sums
 
-def is_square (n : ℕ) : Prop := ∃ s, s * s = n
+def square {α : Type*} [comm_semiring α] (n : α) : Prop := ∃ s, n = s ^ 2
 
-instance : decidable_pred (is_square : ℕ → Prop)
-| n := decidable_of_iff' _ (nat.exists_mul_self n)
+instance : decidable_pred (square : ℕ → Prop)
+| n := begin
+  have := (nat.exists_mul_self n),
+  conv at this {
+    to_lhs,
+    congr,
+    funext,
+    rw [←pow_two, eq_comm],
+  },
+  exact decidable_of_iff' _ this,
+end
 
-def ssqrt (n : ℕ) := ite (is_square n) (sqrt n) 0
+def ssqrt (n : ℕ) := ite (square n) (sqrt n) 0
 
 def sμ' (d : ℕ) := arithmetic_function.moebius (ssqrt d)
 def sμ : arithmetic_function ℤ := ⟨
