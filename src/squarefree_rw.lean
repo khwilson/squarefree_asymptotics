@@ -151,91 +151,45 @@ end
 
 lemma ifififif {n : ℕ} : set.bij_on (λ i, sqrt i) (finset.filter is_square n.divisors) (finset.filter (λ x, x ^ 2 ∣ n) (finset.Icc 1 n)) :=
 begin
-  unfold set.bij_on,
-  unfold set.maps_to,
-  split,
-  intros x hx,
-  simp at hx,
-  simp,
-  split,
-  split,
-  have : x ≠ 0, {
-    by_contradiction H,
-    rw H at hx,
-    exact hx.left.right (zero_dvd_iff.mp hx.left.left),
-  },
-  exact one_le_sqrt (one_le_iff_ne_zero.mpr this),
-  have : x ≤ n, exact le_of_dvd (zero_lt_iff.mpr hx.left.right) hx.left.left,
-  calc sqrt x ≤ sqrt n : sqrt_le_sqrt this
-    ... ≤ n : sqrt_le_self n,
-  rcases hx.right with ⟨x', hx'⟩,
-  rw ← hx',
-  rw sqrt_eq,
-  rw pow_two,
-  rw hx',
-  exact hx.left.left,
-  split,
-  unfold set.inj_on,
+  refine ⟨(λ x hx, _), ⟨_, _⟩⟩,
+  simp only [mem_filter, mem_coe, ne.def, mem_divisors] at hx,
+  simp only [coe_filter, coe_Icc, set.mem_sep_eq, set.mem_Icc],
+  obtain ⟨⟨hx_dvd_n, hn_ne_zero⟩, ⟨x', hx'⟩⟩ := hx,
+  have hx_ne_zero : x ≠ 0,
+  { by_contradiction H, rw H at hx_dvd_n, exact hn_ne_zero (zero_dvd_iff.mp hx_dvd_n), },
+  have one_le_x : 1 ≤ x, exact one_le_iff_ne_zero.mpr hx_ne_zero,
+  refine ⟨⟨_, _⟩, _⟩,
+  rw [←sqrt_one_eq_one],
+  exact sqrt_le_sqrt one_le_x,
+  calc sqrt x ≤ x : x.sqrt_le_self
+    ... ≤ n : le_of_dvd (zero_lt_iff.mpr hn_ne_zero) hx_dvd_n,
+  rwa [←hx', sqrt_eq x', pow_two, hx'],
+
   intros x hx y hy hf,
-  simp at hx,
-  simp at hy,
-  rcases hx.right with ⟨x', hx'⟩,
-  rcases hy.right with ⟨y', hy'⟩,
-  rw [← hx', ← hy', sqrt_eq, sqrt_eq] at hf,
-  calc x = x' * x' : hx'.symm
-    ... = y' * y' : by rw hf
-    ... = y : hy',
-  unfold set.surj_on,
-  -- Why so many unfolds? Why doesn't rw subset_iff work?
-  unfold has_subset.subset,
-  unfold set.subset,
-  intros a ha,
-  simp at ha,
-  simp,
-  use a^2,
-  split,
-  split,
-  split,
-  exact ha.right,
-  linarith,
-  use a,
-  rw pow_two,
-  rw [pow_two, sqrt_eq],
+  simp only [mem_filter, mem_coe, ne.def, mem_divisors] at hx,
+  simp only [mem_filter, mem_coe, ne.def, mem_divisors] at hy,
+  obtain ⟨⟨hy_dvd_n, hn_ne_zero⟩, ⟨x', hx'⟩⟩ := hx,
+  obtain ⟨⟨hy_dvd_n, _⟩, ⟨y', hy'⟩⟩ := hy,
+  simp only at hf,
+  rw [←hx', ←hy', sqrt_eq x', sqrt_eq y'] at hf,
+  rw hf at hx',
+  calc x = y' * y' : hx'.symm ... = y : hy',
+
+  intros y hy,
+  simp only [coe_filter, coe_Icc, set.mem_sep_eq, set.mem_Icc] at hy,
+  obtain ⟨⟨hone_le_y, hy_le_n⟩, ⟨y', hy'⟩⟩ := hy,
+  rw pow_two at hy',
+  simp only [coe_filter, set.mem_sep_eq, set.mem_image, mem_coe, ne.def, mem_divisors],
+  use y * y,
+  exact ⟨⟨⟨dvd.intro y' (eq.symm hy'), (by linarith)⟩, (by use y)⟩, sqrt_eq y⟩,
 end
 
-/- This repackackges finset.sum_bij as specifying the _forward_ function -/
-lemma finset.sum_bij''
+lemma finset.sum_bij_on
 (f : ℕ → ℤ) (g : ℕ → ℕ) (s t : finset ℕ) (hg : set.bij_on g t s) :
 ∑ i in t, f (g i) = ∑ i in s, f i :=
 begin
-  rcases hg with ⟨hg1, hg2, hg3⟩,
-  apply finset.sum_bij,
-
-  have : ∀ (a : ℕ) (ha : a ∈ t), (λ (b : ℕ) (H : b ∈ t), g b) a ha ∈ s, {
-    intros a ha,
-    simp,
-    unfold set.maps_to at hg1,
-    exact hg1 ha,
-  },
-  exact this,
-  intros a ha,
-  congr,
-  intros a b ha hb hginv,
-  unfold set.inj_on at hg2,
-  simp at hginv,
-  exact hg2 ha hb hginv,
-  intros b hb,
-  unfold set.surj_on at hg3,
-  simp,
-  unfold set.image at hg3,
-  simp at hg3,
-  unfold has_subset.subset at hg3,
-  unfold set.subset at hg3,
-  specialize hg3 hb,
-  simp at hg3,
-  rcases hg3 with ⟨a', ha', ha''⟩,
-  use a',
-  exact ⟨ha', ha''.symm⟩,
+  rw [←finsum_mem_coe_finset, ←finsum_mem_coe_finset],
+  exact finsum_mem_eq_of_bij_on g hg (λ _ _, rfl),
 end
 
 lemma rw_tμ {n : ℕ}: tμ n = ∑ d in finset.Icc 1 n, ite (d ^ 2 ∣ n) (μ d) 0 :=
@@ -254,8 +208,8 @@ begin
   },
   rw [sum_ite, sum_ite],
   simp,
-  apply finset.sum_bij'',
-  exact ifififif,
+  rw [←finsum_mem_coe_finset, ←finsum_mem_coe_finset],
+  exact finsum_mem_eq_of_bij_on _ ifififif (λ _ _, rfl),
 end
 
 
