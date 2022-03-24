@@ -295,123 +295,80 @@ begin
 
 end
 
+lemma blahblahb {i : ℕ} {x : ℝ} (hx : x ∈ set.Ioc (i : ℝ) ↑(i + 1)) : ⌈x⌉₊ = i + 1 :=
+begin
+  rw ceil_eq_iff,
+  simp,
+  exact hx,
+  simp,
+end
+
+lemma blahblahblah {i : ℕ} : (i : ℝ) ≤ ↑i + 1 := by { norm_cast, simp, }
+
+lemma stupidthing
+ {E : Type*}  [measurable_space E]  [normed_group E] [topological_space.second_countable_topology E]  [complete_space E] [normed_space ℝ E]  [borel_space E]  {f : ℝ → E}  {a b : ℝ} {μ : measure_theory.measure ℝ} (hab : a ≤ b):
+∫ (x : ℝ) in a..b, f x ∂μ = ∫ (x : ℝ) in Ι a b, f x ∂μ :=
+begin
+  rw interval_integral.interval_integral_eq_integral_interval_oc,
+  simp [hab],
+end
+
 lemma antitone_sum_le_integral {a b : ℕ} {f : ℝ → ℝ} (hab : a ≤ b)
   (hf : antitone_on f (set.Icc a b)) :
   ∑ x in finset.Ico (a + 1) (b + 1), f x  ≤ ∫ x in a..b, f x :=
 begin
+  have : ∀ (x : ℝ), x ∈ set.Icc (a : ℝ) ↑b → f ⌈x⌉₊ ≤ f x,
+  { intros x hx,
+    apply hf hx (ceil_of_Icc_mem_Icc hx),
+    exact le_ceil x, },
+  have fconst : ∀ (i : ℕ), set.eq_on (λ (x : ℝ), f ⌈x⌉₊) (λ (x : ℝ), f ↑(i + 1)) (set.Ioc (i : ℝ) ↑(i + 1)), {
+    intros i x hx,
+    simp,
+    congr,
+    norm_cast,
+    exact blahblahb hx,
+  },
+  have xxx : ∫ x in a..b, f ⌈x⌉₊ ≤ ∫ x in a..b, f x, {
+    refine interval_integral.integral_mono_on (cast_le.mpr hab) _ _ this,
+    apply antitone_on.interval_integrable,
+    rwa interval_eq_Icc (cast_le.mpr hab),
+    intros c hc d hd hcd,
+    refine hf (ceil_of_Icc_mem_Icc hc) (ceil_of_Icc_mem_Icc hd) (cast_le.mpr $ ceil_mono hcd),
+    apply antitone_on.interval_integrable,
+    rwa interval_eq_Icc (cast_le.mpr hab),
+  },
+  refine le_trans _ xxx,
   rw shift_sum,
-  have hf' : antitone_on f (set.Ioo (a : ℝ) ↑b), {
-    intros x hx y hy hxy,
-    exact hf ⟨hx.left.le, hx.right.le⟩ ⟨hy.left.le, hy.right.le⟩ hxy,
-  },
-  have hf_integrable : integrable_on f (set.Ioo (a : ℝ) ↑b), {
-    by_cases hab' : a = b, simp [hab'],
-    have hab' : a < b, exact lt_of_le_of_ne hab hab',
-    rw ← interval_eq_Icc (cast_le.mpr hab) at hf,
-    rcases (antitone_on.interval_integrable hf) with ⟨lfoo, _⟩,
-    have : set.Ioc (a : ℝ) ↑b = (set.Ioo (a : ℝ) ↑b) ∪ {(b : ℝ)},
-    { ext,
-      simp only [set.mem_Ioo, set.mem_insert_iff, union_singleton],
-      split,
-      { rintros ⟨hl, hr⟩,
-        simp [hl, (lt_or_eq_of_le hr).symm], },
-      { intros hx,
-        cases hx,
-        { simp [hab', hx], },
-        { exact ⟨hx.left, hx.right.le⟩, }, }, },
-    rw this at lfoo,
-    exact integrable_on.left_of_union lfoo,
-    apply is_locally_finite_measure_of_is_finite_measure_on_compacts, },
+  have hint : ∀ (k : ℕ), k < b → interval_integrable (λ (x : ℝ), f ↑⌈x⌉₊) volume ↑k ↑(k + 1), {
+    intros i hi,
+    rw interval_integrable_iff,
+    rw interval_oc_of_le,
 
-  let g := (λ (i : ℝ), f (i + 1)),
-  have gequiv : ∀ (i : ℕ), g ↑i = f ↑(i + 1), simp,
-  conv {
-    to_lhs,
-    congr,
-    skip,
-    funext,
-    rw ← gequiv i,
+    refine measure_theory.integrable_on.congr_fun _ (fconst i).symm measurable_set_Ioc,
+    simp,
+    exact blahblahblah,
   },
-
-  have hg_integrable : integrable_on (λ (x : ℝ), g ↑⌊x⌋₊) (Ioo (a : ℝ) ↑b),
-  {
-    by_cases hab' : a = b, simp [hab'],
-    have hab' : a < b, exact lt_of_le_of_ne hab hab',
-    let h := (λ x : ℝ, ite (⌊x⌋₊ + 1 ≤ b) (f ↑(⌊x⌋₊ + 1)) (f ↑b)),
-    have hequiv : ∀ (x : ℝ), h x = ite (⌊x⌋₊ + 1 ≤ b) (f ↑(⌊x⌋₊ + 1)) (f ↑b), { intros x, by_cases hh : ⌊x⌋₊ + 1 ≤ b, simp [h, hh],},
-    have : eq_on h (λ x : ℝ, g ↑⌊x⌋₊) (set.Ioo (a : ℝ) ↑b),
-    { intros x hx,
-      have : ⌊x⌋₊ + 1 ≤ b,
-      { have := (somethingblah hx).right,
-        norm_cast at this,
-        exact this, },
-      rw hequiv x,
-      simp only [cast_one, cast_add, not_le, ite_eq_left_iff],
-      intros h',
-      exfalso,
-      exact this.not_lt h', },
-    refine integrable_on.congr_fun _ this measurable_set_Ioo,
-    have : set.Ioc (a : ℝ) ↑b =ᵐ[real.measure_space.volume] set.Ioo (a : ℝ) ↑b,
-    {
-      rw filter.eventually_eq_set,
-      rw filter.eventually_iff,
-      rw measure_theory.mem_ae_iff,
-      have : {x : ℝ | x ∈ set.Ioc (a : ℝ) ↑b ↔ x ∈ Ioo (a : ℝ) ↑b}ᶜ ⊆ {(b : ℝ)}, {
-        rw compl_subset_iff_union,
-        ext,simp,
-        by_cases hhh : x = ↑b,
-        simp [hhh],
-        right,
-        intros nope,
-        split,
-        intros xxx,
-        exact lt_of_le_of_ne xxx hhh,
-        intros xxx,
-        exact le_of_lt xxx,
-      },
-      exact measure_subset_null _ {(b : ℝ)} this real.volume_singleton,
-    },
-    refine integrable_on.congr_set_ae _ this.symm,
-    have : antitone_on h (set.Icc (a : ℝ) ↑b),
-    { intros x hx y hy hxy,
-      rw hequiv x, rw hequiv y,
-      exact fooooo hxy hf hx hy, },
-    rw ← interval_eq_Icc (cast_le.mpr hab) at this,
-    rcases this.interval_integrable with ⟨lfoo, rfoo⟩,
-    exact lfoo,
-    apply is_locally_finite_measure_of_is_finite_measure_on_compacts,
-  },
-
-  have : ∀ (x : ℝ), x ∈ set.Icc (a : ℝ) ↑b → f ⌈x⌉₊ ≤ f x, {
+  rw ← sum_integral_adjacent_intervals'' hab hint,
+  apply finset.sum_le_sum,
+  intros i hi,
+  rw interval_integral.interval_integral_eq_integral_interval_oc,
+  simp only [cast_add, cast_one, le_add_iff_nonneg_right, zero_le_one, if_true, algebra.id.smul_eq_mul, one_mul],
+  rw interval_oc_of_le blahblahblah,
+  have : set.eq_on (λ (x : ℝ), f ⌈x⌉₊) (λ (x : ℝ), f ↑(i + 1)) (set.Ioc (i : ℝ) ↑(i + 1)), {
     intros x hx,
-    apply hf hx (ceil_of_Icc_mem_Icc hx) (le_ceil x),
+    simp, congr, norm_cast,
+    exact blahblahb hx,
   },
-  conv {
-    to_lhs,
-    congr,
-    skip,
-    funext,
-    rw ← const_eq_integral_const_on_unit_interval i (g ↑i),
+  have yyy : ∫ x in (set.Ioc (i : ℝ) (↑i + 1)), f ↑⌈x⌉₊ = ∫ x in (set.Ioc (i : ℝ) (↑i + 1)), f (↑i + 1), {
+    rw set_integral_congr,
+    simp only [measurable_set_Ioc],
+    exact this,
   },
-  rw convert_finite_sum_to_interval_integral' hab,
-  have hab' : (a : ℝ) ≤ ↑b, exact cast_le.mpr hab,
-  rw interval_integral.integral_of_le hab',
-  rw interval_integral.integral_of_le hab',
-  rw integral_Ioc_eq_integral_Ioo,
-  rw integral_Ioc_eq_integral_Ioo,
-  apply set_integral_mono_on,
-  simp,
-  exact hg_integrable,
-  simp, exact hf_integrable,
-
-  simp,
-
-  intros x hx, conv { to_lhs, rw gequiv ⌊x⌋₊},
-  apply hf,
-  exact mem_Ioo_mem_Icc hx,
-  exact somethingblah hx,
-  apply le_of_lt,
-  exact nat.lt_succ_floor x,
+  rw yyy,
+  let c := f ((i : ℝ) + 1),
+  have : f ((i : ℝ) + 1) = c, simp,
+  rw this,
+  rw [←interval_oc_of_le blahblahblah, ←stupidthing blahblahblah, const_eq_integral_const_on_unit_interval],
 end
 
 /- Not actually used in proof but a reasonable lemma for showing how to deal with integrals -/
