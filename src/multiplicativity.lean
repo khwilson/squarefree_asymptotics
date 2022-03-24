@@ -16,29 +16,31 @@ namespace squarefree_sums
 
 lemma is_multiplicative_ssqrt {a b : ℕ} (hab : a.coprime b) : ssqrt (a * b) = (ssqrt a) * (ssqrt b) :=
 begin
-  by_cases ha : is_square a,
+  by_cases ha : square a,
   {
-    by_cases hb : is_square b,
+    by_cases hb : square b,
     {
-      have : is_square (a * b), exact prod_squares_is_square ha hb,
+      have : square (a * b), exact prod_squares_square ha hb,
       unfold ssqrt,
       simp [ha, hb, this],
       cases ha with a' ha',
       cases hb with b' hb',
-      rw [← ha', ← hb'],
+      rw pow_two at ha',
+      rw pow_two at hb',
+      rw [ha', hb'],
       rw [sqrt_eq, sqrt_eq],
       have : a' * a' * (b' * b') = (a' * b') * (a' * b'), ring,
       rw this,
       rw sqrt_eq,
     },
     {
-      have : ¬ is_square (a * b), exact coprime_prod_not_squares_is_not_square' hab hb,
+      have : ¬square (a * b), exact coprime_prod_not_squares_is_not_square' hab hb,
       unfold ssqrt,
       simp [ha, hb, this],
     },
   },
   {
-    have : ¬ is_square (a * b), exact coprime_prod_not_squares_is_not_square hab ha,
+    have : ¬square (a * b), exact coprime_prod_not_squares_is_not_square hab ha,
     unfold ssqrt,
     simp [ha, this],
   },
@@ -53,11 +55,7 @@ begin
     simp,
     unfold sμ',
     unfold ssqrt,
-    have : is_square 1, {
-      use 1,
-      ring,
-    },
-    simp [this],
+    simp [square_one],
   },
   {
     intros m n hmn,
@@ -66,22 +64,22 @@ begin
     unfold sμ',
     have : ssqrt (m * n) = (ssqrt m) * (ssqrt n), exact is_multiplicative_ssqrt hmn,
     rw this,
-    by_cases hm : is_square m,
+    by_cases hm : square m,
     {
-      by_cases hn : is_square n,
+      by_cases hn : square n,
       {
         have : (ssqrt m).coprime (ssqrt n), exact coprime_ssqrt hm hn hmn,
         simp [arithmetic_function.is_multiplicative_moebius, this],
       },
       {
         unfold ssqrt,
-        have : ¬ is_square (m * n), exact coprime_prod_not_squares_is_not_square' hmn hn,
+        have : ¬square (m * n), exact coprime_prod_not_squares_is_not_square' hmn hn,
         simp [hm, hn, this],
       },
     },
     {
       unfold ssqrt,
-      have : ¬ is_square (m * n), exact coprime_prod_not_squares_is_not_square hmn hm,
+      have : ¬square (m * n), exact coprime_prod_not_squares_is_not_square hmn hm,
       simp [hm, this],
     },
   },

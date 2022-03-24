@@ -141,15 +141,15 @@ end
 --       REWRITE tμ IN A WAY MORE CONDUCIVE TO SUM MANIPULATION
 --------------------------------------------------------------------
 
-lemma blah {n : ℕ} : μ (ssqrt n) = ite (is_square n) (μ (sqrt n)) 0 :=
+lemma blah {n : ℕ} : μ (ssqrt n) = ite (square n) (μ (sqrt n)) 0 :=
 begin
   unfold ssqrt,
-  by_cases is_square n,
+  by_cases square n,
   simp [h],
   simp [h],
 end
 
-lemma ifififif {n : ℕ} : set.bij_on (λ i, sqrt i) (finset.filter is_square n.divisors) (finset.filter (λ x, x ^ 2 ∣ n) (finset.Icc 1 n)) :=
+lemma ifififif {n : ℕ} : set.bij_on (λ i, sqrt i) (finset.filter square n.divisors) (finset.filter (λ x, x ^ 2 ∣ n) (finset.Icc 1 n)) :=
 begin
   refine ⟨(λ x hx, _), ⟨_, _⟩⟩,
   simp only [mem_filter, mem_coe, ne.def, mem_divisors] at hx,
@@ -163,7 +163,8 @@ begin
   exact sqrt_le_sqrt one_le_x,
   calc sqrt x ≤ x : x.sqrt_le_self
     ... ≤ n : le_of_dvd (zero_lt_iff.mpr hn_ne_zero) hx_dvd_n,
-  rwa [←hx', sqrt_eq x', pow_two, hx'],
+  rw pow_two at hx',
+  rwa [hx', sqrt_eq x', pow_two, ←hx'],
 
   intros x hx y hy hf,
   simp only [mem_filter, mem_coe, ne.def, mem_divisors] at hx,
@@ -171,9 +172,11 @@ begin
   obtain ⟨⟨hy_dvd_n, hn_ne_zero⟩, ⟨x', hx'⟩⟩ := hx,
   obtain ⟨⟨hy_dvd_n, _⟩, ⟨y', hy'⟩⟩ := hy,
   simp only at hf,
-  rw [←hx', ←hy', sqrt_eq x', sqrt_eq y'] at hf,
+  rw pow_two at hx',
+  rw pow_two at hy',
+  rw [hx', hy', sqrt_eq x', sqrt_eq y'] at hf,
   rw hf at hx',
-  calc x = y' * y' : hx'.symm ... = y : hy',
+  calc x = y' * y' : hx' ... = y : hy'.symm,
 
   intros y hy,
   simp only [coe_filter, coe_Icc, set.mem_sep_eq, set.mem_Icc] at hy,
@@ -181,7 +184,7 @@ begin
   rw pow_two at hy',
   simp only [coe_filter, set.mem_sep_eq, set.mem_image, mem_coe, ne.def, mem_divisors],
   use y * y,
-  exact ⟨⟨⟨dvd.intro y' (eq.symm hy'), (by linarith)⟩, (by use y)⟩, sqrt_eq y⟩,
+  exact ⟨⟨⟨dvd.intro y' (eq.symm hy'), (by linarith)⟩, (by {use y, rw pow_two} )⟩, sqrt_eq y⟩,
 end
 
 lemma finset.sum_bij_on
