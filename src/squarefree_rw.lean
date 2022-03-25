@@ -159,7 +159,7 @@ begin
   { by_contradiction H, rw H at hx_dvd_n, exact hn_ne_zero (zero_dvd_iff.mp hx_dvd_n), },
   have one_le_x : 1 ≤ x, exact one_le_iff_ne_zero.mpr hx_ne_zero,
   refine ⟨⟨_, _⟩, _⟩,
-  rw [←sqrt_one_eq_one],
+  rw [←sqrt_one],
   exact sqrt_le_sqrt one_le_x,
   calc sqrt x ≤ x : x.sqrt_le_self
     ... ≤ n : le_of_dvd (zero_lt_iff.mpr hn_ne_zero) hx_dvd_n,

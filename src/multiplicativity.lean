@@ -14,6 +14,11 @@ open_locale topological_space interval big_operators filter asymptotics arithmet
 
 namespace squarefree_sums
 
+def arithmetic_function.from_pred {p : ℕ → Prop} [decidable_pred p] (hp : ¬p 0) :
+arithmetic_function ℕ :=
+⟨(λ (n : ℕ), ite (p n) (1 : ℕ) 0), by simp only [hp, if_false]⟩
+
+
 lemma is_multiplicative_ssqrt {a b : ℕ} (hab : a.coprime b) : ssqrt (a * b) = (ssqrt a) * (ssqrt b) :=
 begin
   by_cases ha : square a,

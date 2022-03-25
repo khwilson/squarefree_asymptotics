@@ -438,16 +438,14 @@ theorem integral_tendsto_of_has_deriv_at {a b : ℝ} {f f' : ℝ → ℝ}
   (hint : ∀ (b : ℝ), b ∈ Ici a → interval_integrable f' volume a b) :
   tendsto (λ (b : ℝ), ∫ y in a..b, f' y) at_top (𝓝 (b - f a)) :=
 begin
-  have hev : (λ (x : ℝ), f x - f a) =ᶠ[at_top] (λ (b : ℝ), ∫ y in a..b, f' y), {
-    rw [eventually_eq, eventually_at_top],
+  have hev : (λ (x : ℝ), f x - f a) =ᶠ[at_top] (λ (b : ℝ), ∫ y in a..b, f' y),
+  { rw [eventually_eq, eventually_at_top],
     use a,
     intros b hb,
-    have hderiv' : ∀ x ∈ [a, b], has_deriv_at f (f' x) x, {
-      intros x hx,
-      exact hderiv x (calc a = min a b : (min_eq_left hb.le).symm ... ≤ x : hx.left),
-    },
-    rw interval_integral.integral_eq_sub_of_has_deriv_at hderiv' (hint b hb.le),
-  },
+    have hderiv' : ∀ x ∈ [a, b], has_deriv_at f (f' x) x,
+    { intros x hx,
+      exact hderiv x (calc a = min a b : (min_eq_left hb.le).symm ... ≤ x : hx.left), },
+    rw interval_integral.integral_eq_sub_of_has_deriv_at hderiv' (hint b hb.le), },
   exact tendsto.congr' hev (filter.tendsto.sub_const (f a) hvanish),
 end
 
