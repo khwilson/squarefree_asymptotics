@@ -833,7 +833,7 @@ begin
   },
   rw this,
   refine tendsto.comp _ tendsto_coe_nat_at_top_at_top,
-  exact goal ↑c (-2) hc_cast' (by linarith),
+  exact integral_rpow_tendsto_at_top ↑c (-2) hc_cast' (by linarith),
   {
     unfold antitone_on,
     intros a ha b hb hab,
