@@ -224,66 +224,6 @@ begin
   exact lt_of_le_of_ne hc.right hc',
 end
 
-lemma somethingblah' {R : Type*} [linear_ordered_semiring R] [floor_semiring R]
-  {a b : ℕ} {x : R} (hx : x ∈ set.Ico (a : R) ↑b) :
-  (⌊x⌋₊ : R) + 1 ∈ set.Icc (a : R) ↑b :=
-begin
-  rw set.mem_Ico at hx,
-  rw set.mem_Icc,
-  norm_cast,
-  have zero_le_x := le_trans (nat.cast_le.mpr $ zero_le a) hx.left,
-  split,
-  { exact le_trans ((nat.le_floor_iff zero_le_x).mpr hx.left) (le_succ ⌊x⌋₊), },
-  { have := calc ↑⌊x⌋₊ ≤ x : floor_le zero_le_x ... < b : hx.right,
-    norm_cast at this,
-    exact lt_iff_add_one_le.mp this, },
-end
-
-lemma somethingblah {R : Type*} [linear_ordered_semiring R] [floor_semiring R]
-  {a b : ℕ} {x : R} (hx : x ∈ set.Ioo (a : R) ↑b) :
-  (⌊x⌋₊ : R) + 1 ∈ set.Icc (a : R) ↑b := somethingblah' ⟨hx.left.le, hx.right⟩
-
-lemma fooooo
-{x y : ℝ}
-{a b : ℕ}
-{f : ℝ → ℝ}
-(hxy : x ≤ y)
-(hf : antitone_on f (set.Icc (a : ℝ) ↑b))
-(hx : x ∈ set.Icc (a : ℝ) ↑b)
-(hy : y ∈ set.Icc (a : ℝ) ↑b) :
-ite (⌊y⌋₊ + 1 ≤ b) (f ↑(⌊y⌋₊ + 1)) (f ↑b) ≤ ite (⌊x⌋₊ + 1 ≤ b) (f ↑(⌊x⌋₊ + 1)) (f ↑b)
-:=
-begin
-  have hx_nonneg : 0 ≤ x, calc (0 : ℝ) ≤ a : cast_nonneg a ... ≤ x : hx.left,
-  have hy_nonneg : 0 ≤ y, calc (0 : ℝ) ≤ a : cast_nonneg a ... ≤ y : hy.left,
-  by_cases hy' : y = b,
-  { simp only [floor_coe, hy', add_le_iff_nonpos_right, _root_.le_zero_iff, nat.one_ne_zero, cast_add, cast_one, if_false],
-    by_cases hx' : x = b,
-    { simp only [floor_coe, hx', add_le_iff_nonpos_right, _root_.le_zero_iff, nat.one_ne_zero, cast_add, cast_one, if_false], },
-    { let foo := lt_of_le_of_ne hx.right hx',
-      let bar := succ_le_iff.mpr ((floor_lt hx_nonneg).mpr foo),
-      simp only [bar, if_true],
-      apply hf,
-      { split,
-        { calc (a : ℝ) ≤ ⌊x⌋₊ : cast_le.mpr (le_floor hx.left) ... ≤ ⌊x⌋₊ + 1 : by linarith },
-        { exact cast_le.mpr bar, }, },
-      { exact mem_of_eq_of_mem (eq.symm hy') hy, },
-      { norm_cast, exact bar, }, }, },
-  { have hy'' : y < b, exact lt_of_le_of_ne hy.right hy',
-    have hx'' : x < b, calc x ≤ y : hxy ... < b : hy'',
-
-    have aa : ⌊y⌋₊ + 1 ≤ b, exact succ_le_iff.mpr ((floor_lt hy_nonneg).mpr hy''),
-    have cc : ⌊x⌋₊ + 1 ≤ ⌊y⌋₊ + 1, linarith [floor_mono hxy],
-    have bb : ⌊x⌋₊ + 1 ≤ b, exact succ_le_iff.mpr ((floor_lt hx_nonneg).mpr hx''),
-    have dd : a ≤ ⌊x⌋₊ + 1, calc a ≤ ⌊x⌋₊ : le_floor hx.left ... ≤ ⌊x⌋₊ + 1 : by linarith,
-    have ee : a ≤ ⌊y⌋₊ + 1, calc a ≤ ⌊y⌋₊ : le_floor hy.left ... ≤ ⌊y⌋₊ + 1 : by linarith,
-    simp only [aa, bb, cast_add, cast_one, if_true],
-    apply hf,
-    { simp, norm_cast, split, { exact dd, }, { exact bb, }, },
-    { simp, norm_cast, split, { exact ee, }, { exact aa, }, },
-    { norm_cast, exact cc, }, },
-end
-
 lemma blahblahb {i : ℕ} {x : ℝ} (hx : x ∈ set.Ioc (i : ℝ) ↑(i + 1)) : ⌈x⌉₊ = i + 1 :=
 begin
   rw ceil_eq_iff,
@@ -358,18 +298,6 @@ begin
   have : f ((i : ℝ) + 1) = c, simp,
   rw this,
   rw [←interval_oc_of_le blahblahblah, ←stupidthing blahblahblah, const_eq_integral_const_on_unit_interval],
-end
-
-/- Not actually used in proof but a reasonable lemma for showing how to deal with integrals -/
-lemma blahblah {a b c d : ℝ} {f : ℝ → ℝ}
-  (hf : interval_integrable f real.measure_space.volume a b)
-  (hac : a ≤ c) (hcd : c ≤ d) (hdb : d ≤ b) :
-  interval_integrable f real.measure_space.volume c d :=
-begin
-  rw interval_integrable_iff,
-  apply integrable_on.mono_set hf.left,
-  rw interval_oc_of_le hcd,
-  exact Ioc_subset_Ioc hac hdb,
 end
 
 lemma blech
@@ -504,64 +432,74 @@ begin
   exact hf_nonneg u (mem_Icc_mem_Ici hu),
 end
 
-lemma goal (a r : ℝ) (ha : 0 < a) (hr : r < -1):
+theorem integral_tendsto_of_has_deriv_at {a b : ℝ} {f f' : ℝ → ℝ}
+  (hderiv : ∀ x ∈ Ici a, has_deriv_at f (f' x) x)
+  (hvanish : tendsto f at_top (𝓝 b))
+  (hint : ∀ (b : ℝ), b ∈ Ici a → interval_integrable f' volume a b) :
+  tendsto (λ (b : ℝ), ∫ y in a..b, f' y) at_top (𝓝 (b - f a)) :=
+begin
+  have hev : (λ (x : ℝ), f x - f a) =ᶠ[at_top] (λ (b : ℝ), ∫ y in a..b, f' y), {
+    rw [eventually_eq, eventually_at_top],
+    use a,
+    intros b hb,
+    have hderiv' : ∀ x ∈ [a, b], has_deriv_at f (f' x) x, {
+      intros x hx,
+      exact hderiv x (calc a = min a b : (min_eq_left hb.le).symm ... ≤ x : hx.left),
+    },
+    rw interval_integral.integral_eq_sub_of_has_deriv_at hderiv' (hint b hb.le),
+  },
+  exact tendsto.congr' hev (filter.tendsto.sub_const (f a) hvanish),
+end
+
+lemma integral_rpow_tendsto_at_top (a r : ℝ) (ha : 0 < a) (hr : r < -1):
 tendsto
 (λ (y : ℝ), ∫ (x : ℝ) in a..y, x ^ r)
 at_top
 (𝓝 (-a ^ (r + 1) / (r + 1)))
 :=
 begin
-  have : tendsto (λ (y : ℝ), (y ^ (r + 1))) at_top (𝓝 0),
-  have : (r + 1) = - - (r + 1), simp,
-  rw this,
-  apply tendsto_rpow_neg_at_top,
-  linarith,
-  have : tendsto (λ (y : ℝ), (y ^ (r + 1) / (r + 1))) at_top (𝓝 0),
-  conv {
-    congr,
-    skip, skip, congr,
-    rw ← zero_div (r + 1),
+  let f' := (λ (x : ℝ), x ^ r),
+  let f := (λ (x : ℝ), x ^ (r + 1) * (r + 1)⁻¹),
+  have hderiv : ∀ x ∈ Ici a, has_deriv_at f (f' x) x, {
+    -- ganked from https://github.com/leanprover-community/mathlib/blob/2143571557740bf69d0631339deea0d0e479df54/src/analysis/special_functions/integrals.lean#L181
+    intros x hx,
+    have hx' : x ≠ 0 ∨ 1 ≤ r + 1,
+    { left,
+      symmetry,
+      apply ne_of_lt,
+      calc 0 < a : ha ... ≤ x : hx, },
+    convert (real.has_deriv_at_rpow_const hx').div_const (r + 1),
+    rw [add_sub_cancel, mul_div_cancel_left],
+    rw [ne.def, ← eq_neg_iff_add_eq_zero],
+    rintro rfl,
+    apply (@zero_lt_one ℝ _ _).not_le,
+    linarith,
   },
-  apply tendsto.div_const,
-  exact this,
-  have fooooo : (λ (y : ℝ), ((y ^ (r + 1) - a ^ (r + 1)) / (r + 1))) = (λ (y : ℝ), y ^ (r + 1) / (r + 1)) + (λ (y : ℝ), -a ^ (r + 1) / (r + 1)), {
-    funext,
-    simp,
-    ring,
-  },
-  have : tendsto (λ (y : ℝ), ((y ^ (r + 1) - a ^ (r + 1)) / (r + 1))) at_top (𝓝 (-a ^ (r + 1) / (r + 1))),
-  {
-    rw fooooo,
-    conv {
-      congr,
-      skip,
-      skip,
-      congr,
-      rw ← zero_add (-a ^ (r + 1) / (r + 1)),
-    },
-    apply tendsto.add,
-    simp,
-    exact this,
-    exact tendsto_const_nhds,
-  },
-  refine tendsto.congr' _ this,
-  rw eventually_eq_iff_exists_mem,
-  use { y : ℝ | a < y },
-  split,
-  simp,
-  use a + 1,
-  intros b hb,
-  linarith,
-  unfold set.eq_on,
-  intros x hx,
-  simp at hx,
-  rw integral_rpow,
-  right,
-  split,
-  linarith,
-  apply not_mem_interval_of_lt,
-  exact ha,
-  calc 0 < a : ha ... < x : hx,
+  have hvanish : tendsto f at_top (𝓝 0),
+  { rw ← zero_mul (r + 1)⁻¹,
+    apply filter.tendsto.mul_const,
+    have : tendsto (λ (k : ℝ), k ^ -(r + 1)) at_top at_top,
+    { apply tendsto_rpow_at_top,
+      linarith [hr], },
+    have aaa : (λ (k : ℝ), k ^ -(r + 1)) =ᶠ[at_top] (λ (k : ℝ), (k ^ (r + 1))⁻¹),
+    { rw [eventually_eq, eventually_at_top],
+      use 0,
+      intros b hb,
+      rw [←real.inv_rpow hb.le, real.rpow_neg hb.le, ←real.inv_rpow hb.le], },
+    refine tendsto.congr _ (tendsto_inv_at_top_zero.comp (tendsto.congr' aaa this)),
+    intros x,
+    simp only [comp_app, inv_inv], },
+  have hint : ∀ (b : ℝ), b ∈ Ici a → interval_integrable f' volume a b,
+  { intros b hb,
+    apply interval_integral.interval_integrable_rpow,
+    right,
+    intros H,
+    have : 0 < min a b, { rw lt_min_iff, exact ⟨ha, calc 0 < a : ha ... ≤ b : hb⟩ },
+    exact not_le_of_lt this H.left, },
+  have fequiv : f = (λ (x : ℝ), x ^ (r + 1) / (r + 1)), refl,
+  have : 0 - f a = -a ^ (r + 1) / (r + 1), { simp, rw fequiv, simp, ring, },
+  rw ← this,
+  exact integral_tendsto_of_has_deriv_at hderiv hvanish hint,
 end
 
 end squarefree_sums
