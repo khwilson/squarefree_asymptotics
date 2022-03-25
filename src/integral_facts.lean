@@ -254,45 +254,34 @@ lemma fooooo
 ite (⌊y⌋₊ + 1 ≤ b) (f ↑(⌊y⌋₊ + 1)) (f ↑b) ≤ ite (⌊x⌋₊ + 1 ≤ b) (f ↑(⌊x⌋₊ + 1)) (f ↑b)
 :=
 begin
-  by_cases hy' : y = ↑b,
-  {
-    have : ¬ (⌊y⌋₊ + 1  ≤ b), rw hy', rw floor_coe, simp,
-    simp [this],
-    by_cases hx' : x = ↑b,
-      have : ¬ (⌊x⌋₊ + 1  ≤ b), rw hx', rw floor_coe, simp,
-      simp [this],
+  have hx_nonneg : 0 ≤ x, calc (0 : ℝ) ≤ a : cast_nonneg a ... ≤ x : hx.left,
+  have hy_nonneg : 0 ≤ y, calc (0 : ℝ) ≤ a : cast_nonneg a ... ≤ y : hy.left,
+  by_cases hy' : y = b,
+  { simp only [floor_coe, hy', add_le_iff_nonpos_right, _root_.le_zero_iff, nat.one_ne_zero, cast_add, cast_one, if_false],
+    by_cases hx' : x = b,
+    { simp only [floor_coe, hx', add_le_iff_nonpos_right, _root_.le_zero_iff, nat.one_ne_zero, cast_add, cast_one, if_false], },
+    { let foo := lt_of_le_of_ne hx.right hx',
+      let bar := succ_le_iff.mpr ((floor_lt hx_nonneg).mpr foo),
+      simp only [bar, if_true],
+      apply hf,
+      { split,
+        { calc (a : ℝ) ≤ ⌊x⌋₊ : cast_le.mpr (le_floor hx.left) ... ≤ ⌊x⌋₊ + 1 : by linarith },
+        { exact cast_le.mpr bar, }, },
+      { exact mem_of_eq_of_mem (eq.symm hy') hy, },
+      { norm_cast, exact bar, }, }, },
+  { have hy'' : y < b, exact lt_of_le_of_ne hy.right hy',
+    have hx'' : x < b, calc x ≤ y : hxy ... < b : hy'',
 
-      have xxx : ↑(⌊x⌋₊ + 1) ∈ set.Icc (a : ℝ) ↑b, exact somethingblah' (mem_Icc_Ico hx hx'),
-      have bbb : ↑b ∈ set.Icc (a : ℝ) ↑b,
-      {
-        simp,
-        simp at hx,
-        exact cast_le.mp (calc ↑a ≤ x : hx.left ... ≤ ↑b : hx.right),
-      },
-      have : ⌊x⌋₊ + 1 ≤ b, simp at xxx, norm_cast at xxx, exact xxx.right,
-      simp [this],
-      exact hf xxx bbb (cast_le.mpr this),
-  },
-  {
-    have : y ∈ set.Ico (a : ℝ) ↑b, exact mem_Icc_Ico hy hy',
-    have hy_icc : ↑(⌊y⌋₊ + 1) ∈ set.Icc (a : ℝ) ↑b, exact somethingblah' this,
-    have hy_le_b : ⌊y⌋₊ + 1 ≤ b, { simp at hy_icc, norm_cast at hy_icc, exact hy_icc.right, },
-
-    have hxy' : ⌊x⌋₊ + 1 ≤ ⌊y⌋₊ + 1,
-    {
-      have : ⌊x⌋₊ ≤ ⌊y⌋₊, exact floor_mono hxy,
-      linarith [this],
-    },
-
-    have : x ≠ ↑b, apply ne_of_lt, simp at this, calc x ≤ y : hxy ... < ↑b : this.right,
-    have : x ∈ set.Ico (a : ℝ) ↑b, exact mem_Icc_Ico hx this,
-    have hx_icc: ↑(⌊x⌋₊ + 1) ∈ set.Icc (a : ℝ) ↑b, exact somethingblah' this,
-    have hx_le_b : ⌊x⌋₊ + 1 ≤ b, { simp at hx_icc, norm_cast at hx_icc, exact hx_icc.right, },
-
-    simp [hx_le_b, hy_le_b],
-    exact hf hx_icc hy_icc (cast_le.mpr hxy'),
-  },
-
+    have aa : ⌊y⌋₊ + 1 ≤ b, exact succ_le_iff.mpr ((floor_lt hy_nonneg).mpr hy''),
+    have cc : ⌊x⌋₊ + 1 ≤ ⌊y⌋₊ + 1, linarith [floor_mono hxy],
+    have bb : ⌊x⌋₊ + 1 ≤ b, exact succ_le_iff.mpr ((floor_lt hx_nonneg).mpr hx''),
+    have dd : a ≤ ⌊x⌋₊ + 1, calc a ≤ ⌊x⌋₊ : le_floor hx.left ... ≤ ⌊x⌋₊ + 1 : by linarith,
+    have ee : a ≤ ⌊y⌋₊ + 1, calc a ≤ ⌊y⌋₊ : le_floor hy.left ... ≤ ⌊y⌋₊ + 1 : by linarith,
+    simp only [aa, bb, cast_add, cast_one, if_true],
+    apply hf,
+    { simp, norm_cast, split, { exact dd, }, { exact bb, }, },
+    { simp, norm_cast, split, { exact ee, }, { exact aa, }, },
+    { norm_cast, exact cc, }, },
 end
 
 lemma blahblahb {i : ℕ} {x : ℝ} (hx : x ∈ set.Ioc (i : ℝ) ↑(i + 1)) : ⌈x⌉₊ = i + 1 :=
