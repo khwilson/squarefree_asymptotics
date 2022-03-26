@@ -49,26 +49,17 @@ begin
   conv { congr, funext, rw abs_mul},
   cases hC with C hC,
   apply summable_of_nonneg_of_le,
-  intros b,
-  rw ← abs_mul,
-  refine abs_nonneg _,
-  intros b,
-  have : |f b| * |(↑b ^ d)⁻¹| ≤ C * |(↑b ^ d)⁻¹|, {
-    specialize hC b,
-    apply mul_le_mul hC rfl.le,
-    refine abs_nonneg _,
-    transitivity,
-    exact abs_nonneg (f b),
-    exact hC,
-  },
-  exact this,
-  apply summable.mul_left,
-  have : ∀ (b : ℕ), 0 ≤ ((b : ℝ) ^ d)⁻¹, {
-    intros b,
-    simp,
-  },
-  conv { congr, funext, rw abs_of_nonneg (this b), },
-  exact one_dirichlet_summable d hd,
+  { intros b,
+    rw ← abs_mul,
+    exact abs_nonneg _, },
+  { intros b,
+    have : |f b| * |(↑b ^ d)⁻¹| ≤ C * |(↑b ^ d)⁻¹|, {
+      exact mul_le_mul (hC b) rfl.le (abs_nonneg _) (le_trans (abs_nonneg _) (hC b)),
+    },
+    exact this, },
+  { apply summable.mul_left,
+    refine summable.congr (one_dirichlet_summable d hd) (λ b, _),
+    simp only [inv_nonneg, pow_nonneg, cast_nonneg, abs_of_nonneg], },
 end
 
 lemma abs_tsum_le_tsum_abs {f : ℕ → ℝ} : | ∑' i, f i | ≤ (∑' i, |f i|) :=
