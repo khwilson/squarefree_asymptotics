@@ -22,6 +22,13 @@ namespace squarefree_sums
 --           THEOREM 2: THE BIG BAD
 --------------------------------------------
 
+lemma one_le_sqrt {n : ℕ} (hn : n ≠ 0) : 1 ≤ sqrt n :=
+begin
+  have : 1 ≤ n, exact one_le_iff_ne_zero.mpr hn,
+  rw ← sqrt_one,
+  exact sqrt_le_sqrt this,
+end
+
 lemma step0 :
 ∀ (x : ℕ),
 ∑ n in finset.Icc 1 x, squarefree_nat n =
@@ -742,7 +749,7 @@ begin
       simp [h],
       unfold μ_over_d2,
       rw abs_mul,
-      have : 0 < ((c : ℝ) ^ 2)⁻¹, simp, norm_cast, apply pow_pos, calc 0 < 1 : by linarith ... ≤ sqrt b : one_le_sqrt (calc 1 ≤ 100 : by linarith ... ≤ b : hb) ... ≤ c : h,
+      have : 0 < ((c : ℝ) ^ 2)⁻¹, simp, norm_cast, apply pow_pos, calc 0 < 1 : by linarith ... = sqrt 1 : sqrt_one.symm ... ≤ sqrt b : sqrt_le_sqrt (calc 1 ≤ 100 : by linarith ... ≤ b : hb) ... ≤ c : h,
       rw abs_of_pos this,
       rw mul_comm,
       rw ← le_div_iff' this,
@@ -921,7 +928,8 @@ begin
   simp,
   use 1,
   intros b hb,
-  exact one_le_sqrt hb,
+  rw ←sqrt_one,
+  exact sqrt_le_sqrt hb,
 end
 
 end squarefree_sums

@@ -13,7 +13,55 @@ open_locale topological_space interval big_operators filter asymptotics arithmet
 
 namespace squarefree_sums
 
-lemma square_one : square 1 := by { use 1, ring, }
+@[simp] lemma square_zero {R : Type*} [comm_monoid_with_zero R] : square (0 : R) := by { use 0, simp, }
+
+@[simp] lemma square_one {R : Type*} [comm_monoid R]: square (1 : R) := by { use 1, simp, }
+
+lemma square_iff_factorization_even {m : ℕ} :
+square m ↔ ∀ (p : ℕ), even (m.factorization p) :=
+begin
+  by_cases hm_zero : m = 0,
+  { simp [hm_zero], },
+  { split,
+    { rintros ⟨c, hc⟩,
+      rw [hc, pow_two],
+      by_cases hc' : c = 0,
+      { simp [hc'], },
+      { intros p,
+        simp only [hc', nat.factorization_mul, ne.def, not_false_iff,
+          finsupp.coe_add, pi.add_apply],
+        rw ←two_mul,
+        simp [even], }, },
+    { intros hp,
+      use m.factorization.prod (λ p i, p ^ (i / 2)),
+      rw pow_two,
+      rw ← finsupp.prod_mul,
+      conv { to_lhs, rw ← nat.factorization_prod_pow_eq_self hm_zero,},
+      apply finsupp.prod_congr,
+      intros x hx,
+      rcases hp x with ⟨c, hc⟩,
+      rw [←pow_add, ←two_mul, hc],
+      congr,
+      simp, }, },
+end
+
+lemma square_mul {m n : ℕ} (hmn : m.coprime n) :
+  square (m * n) ↔ square m ∧ square n :=
+begin
+  split,
+  { rw [square_iff_factorization_even, square_iff_factorization_even, square_iff_factorization_even],
+    intros hmn',
+    split,
+    { intros p,
+      by_cases hp : p ∈ m.factors,
+      { rw ← factorization_eq_of_coprime_left hmn hp, exact hmn' p, },
+      { rw [←nat.factors_count_eq, list.count_eq_zero_of_not_mem hp], exact even_zero, }, },
+    { intros p,
+      by_cases hp : p ∈ n.factors,
+      { rw ← factorization_eq_of_coprime_right hmn hp, exact hmn' p, },
+      { rw [←nat.factors_count_eq, list.count_eq_zero_of_not_mem hp], exact even_zero, }, }, },
+  { rintros ⟨⟨c, hc⟩, ⟨d, hd⟩⟩, use (c * d), rw [hc, hd], ring, },
+end
 
 lemma square_prime_pow_iff_pow_even : ∀ (p i : ℕ), nat.prime p → (square (p ^ i) ↔ even i) :=
 begin
@@ -51,11 +99,7 @@ begin
   exact this ((square_prime_pow_iff_pow_even p 1 hp).mp H),
 end
 
-lemma ssqrt_one : ssqrt 1 = 1 :=
-begin
-  unfold ssqrt,
-  simp [square_one],
-end
+lemma ssqrt_one : ssqrt 1 = 1 := by simp only [ssqrt, square_one, if_true, sqrt_one]
 
 lemma ssqrt_prime {p : ℕ} (hp : nat.prime p) : ssqrt p = 0 :=
 begin

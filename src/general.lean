@@ -217,22 +217,16 @@ begin
   simp [h],
 end
 
-lemma interval_eq_Icc {a b : ℝ} (hab : a ≤ b) : [a, b] = set.Icc a b :=
+lemma interval_eq_Icc {a b : ℝ} (hab : a ≤ b) : set.interval a b = set.Icc a b :=
 begin
   unfold set.interval,
-  have : min a b = a, simp [hab],
-  rw this,
-  have : max a b = b, simp [hab],
-  rw this,
+  rw [min_eq_left hab, max_eq_right hab],
 end
 
-lemma interval_eq_Icc' {a b : ℝ} (hab : a ≤ b) : [b, a] = set.Icc a b :=
+lemma interval_eq_Icc' {a b : ℝ} (hab : a ≤ b) : set.interval b a = set.Icc a b :=
 begin
   unfold set.interval,
-  have : min b a = a, simp [hab],
-  rw this,
-  have : max b a = b, simp [hab],
-  rw this,
+  rw [min_eq_right hab, max_eq_left hab],
 end
 
 lemma mem_Icc_mem_Ici
@@ -358,13 +352,11 @@ lemma floor_of_Icc_mem_Icc
 ↑⌊x⌋₊ ∈ set.Icc (a : ℝ) ↑b
 :=
 begin
-  simp at hx,
-  have : 0 ≤ x, calc (0 : ℝ) ≤ ↑a : by simp ... ≤ x : hx.left,
-  simp,
-  split,
-  exact le_floor hx.left,
-  have : (⌊x⌋₊ : ℝ) ≤ ↑b, calc ↑⌊x⌋₊ ≤ x : floor_le this ... ≤ ↑b : hx.right,
-  exact cast_le.mp this,
+  rw set.mem_Icc,
+  norm_cast,
+  refine ⟨le_floor hx.left, _⟩,
+  have := floor_mono hx.right,
+  rwa floor_coe at this,
 end
 
 lemma floor_of_unit_Ioo_val {R : Type*} [linear_ordered_semiring R] [floor_semiring R]

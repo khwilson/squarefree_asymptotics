@@ -51,10 +51,43 @@ begin
   },
 end
 
-lemma square_mul {m n : ℕ} (hmn : m.coprime n) :
-  square (m * n) ↔ square m ∧ square n := sorry
+lemma blah {α : Sort*} {a b : α} : a = b ↔ b = a := ⟨(λ h, h.symm), (λ h, h.symm)⟩
 
-lemma ssqrt_dvd_of_square {m : ℕ} : square m → (ssqrt m ∣ m) := sorry
+lemma square_iff_sqrt_mul_sqrt_eq {m : ℕ} : square m ↔ (sqrt m) * (sqrt m) = m :=
+begin
+  rw ←pow_two,
+  convert m.exists_mul_self',
+  conv { to_rhs, congr, funext, rw blah, },
+  refl,
+end
+
+lemma square_iff_ssqrt_mul_ssqrt_eq {m : ℕ} : square m ↔ (ssqrt m) * (ssqrt m) = m :=
+begin
+  split,
+  { intros h,
+    simp only [ssqrt, h, if_true],
+    exact square_iff_sqrt_mul_sqrt_eq.mp h, },
+  { contrapose!,
+    intros h,
+    simp only [ssqrt, h, if_false, mul_zero],
+    intros h',
+    rw ←h' at h,
+    exact h square_zero, },
+end
+
+lemma sqrt_dvd_of_square {m : ℕ} : square m → (sqrt m ∣ m) :=
+begin
+  intros hm,
+  rw [←square_iff_sqrt_mul_sqrt_eq.mp hm, sqrt_eq],
+  exact dvd_mul_left _ _,
+end
+
+lemma ssqrt_dvd_of_square {m : ℕ} : square m → (ssqrt m ∣ m) :=
+begin
+  intros hm,
+  simp only [ssqrt, hm, if_true],
+  exact sqrt_dvd_of_square hm,
+end
 
 lemma is_multiplicative_sμ : arithmetic_function.is_multiplicative sμ :=
 begin

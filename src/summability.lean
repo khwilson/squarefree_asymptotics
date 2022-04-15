@@ -443,7 +443,6 @@ begin
   exact ite_lt_floor' hb n,
 end
 
-
 lemma tsum_sub_head_eq_tail'
 {b : ℝ}
 {f : ℝ → ℝ}
@@ -465,40 +464,6 @@ begin
     skip, congr, funext, rw ite_lt_floor' hb i,
   },
   exact tsum_sub_head_eq_tail hg,
-end
-
-lemma shift_sum
-{a b d : ℕ}
-{f : ℕ → ℝ}
-:
-∑ (i : ℕ) in finset.Ico (a + d) (b + d), f i = ∑ (i : ℕ) in finset.Ico a b, f (i + d)
-:=
-begin
-  apply finset.sum_bij (λ (i : ℕ) (hi : i ∈ finset.Ico (a + d) (b + d)), i - d),
-  intros m hm, simp, simp at hm, split,
-  let blah := nat.sub_le_sub_right hm.left d, rw nat.add_sub_cancel at blah, exact blah,
-  have : m - d + d < b + d → m - d < b, simp,
-  apply this,
-  have : d ≤ m, calc d ≤ a + d : by simp ... ≤ m : hm.left,
-  rw nat.sub_add_cancel this,
-  exact hm.right,
-
-  intros m hm, simp, congr, symmetry, apply nat.sub_add_cancel, simp at hm, calc d ≤ a + d : by simp ... ≤ m : hm.left,
-
-  intros m n hm hn, simp, simp at hm, simp at hn,
-  have : d ≤ m, calc d ≤ a + d : by simp ... ≤ m : hm.left,
-  rw nat.sub_eq_iff_eq_add this,
-  have : d ≤ n, calc d ≤ a + d : by simp ... ≤ n : hn.left,
-  rw nat.sub_add_cancel this,
-  intros h, exact h,
-
-  intros m hm, use m + d,
-  have : m + d ∈ finset.Ico (a + d) (b + d), {
-    simp at hm,
-    simp [hm],
-  },
-  use this,
-  simp,
 end
 
 

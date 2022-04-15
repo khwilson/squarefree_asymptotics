@@ -11,7 +11,7 @@ open_locale topological_space interval big_operators filter asymptotics arithmet
 
 namespace squarefree_sums
 
-def square {α : Type*} [comm_semiring α] (n : α) : Prop := ∃ s, n = s ^ 2
+def square {α : Type*} [comm_monoid α] (n : α) : Prop := ∃ s, n = s ^ 2
 
 instance : decidable_pred (square : ℕ → Prop)
 | n := begin
@@ -27,25 +27,17 @@ end
 
 def ssqrt (n : ℕ) := ite (square n) (sqrt n) 0
 
-def sμ' (d : ℕ) := arithmetic_function.moebius (ssqrt d)
 def sμ : arithmetic_function ℤ := ⟨
-  sμ',
-  by {
-    unfold sμ',
-    unfold ssqrt,
-    simp,
-  },
+  (λ d : ℕ, arithmetic_function.moebius (ssqrt d)),
+  by simp [ssqrt]
 ⟩
 
 def tμ := sμ * ζ
 
-def squarefree_nat' (d : ℕ) := ite (squarefree d) (1 : ℤ) (0 : ℤ)
-
 def squarefree_nat : arithmetic_function ℤ :=
 ⟨
-  squarefree_nat',
+  (λ d : ℕ, ite (squarefree d) (1 : ℤ) (0 : ℤ)),
   (by {
-    unfold squarefree_nat',
     have : ¬squarefree 0, exact not_squarefree_zero,
     simp [this],
   }),
