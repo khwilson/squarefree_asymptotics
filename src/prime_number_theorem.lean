@@ -36,6 +36,207 @@ end
 
 lemma norm_sub_comm {a b : ℝ} : ∥a - b∥ = ∥b - a∥ := sorry
 
+/-- You could rearrange this lemma to actually choose g for the user, but I don't
+understand that syntax so would welcome help! -/
+lemma uniform_convergence_of_uniform_cauchy
+(f : ℕ → ℝ → ℝ)
+(g : ℝ → ℝ)
+(s : set ℝ)
+(hfg : ∀ x : ℝ, x ∈ s → tendsto (λ n, f n x) at_top (nhds (g x)))
+(hu : ∀ ε : ℝ, ε > 0 → ∃ N : ℕ, ∀ m : ℕ, m ≥ N → ∀ n : ℕ, n ≥ N → ∀ x : ℝ, x ∈ s → ∥f m x - f n x∥ < ε) :
+tendsto_uniformly_on f g at_top s :=
+begin
+  sorry,
+end
+
+lemma uniform_cauchy_of_uniform_convergence
+(f : ℕ → ℝ → ℝ)
+(g : ℝ → ℝ)
+(s : set ℝ)
+-- (hfg : ∀ x : ℝ, x ∈ s → tendsto (λ n, f n x) at_top (nhds (g x)))
+(hu : tendsto_uniformly_on f g at_top s) :
+∀ ε : ℝ, ε > 0 → ∃ N : ℕ, ∀ m : ℕ, m ≥ N → ∀ n : ℕ, n ≥ N → ∀ x : ℝ, x ∈ s → ∥f m x - f n x∥ < ε) :=
+begin
+  sorry,
+end
+
+lemma cauchy_of_convergence
+(f : ℕ → ℝ → ℝ)
+(g : ℝ → ℝ)
+(x : ℝ)
+(hu : tendsto (λ n, f n x) at_top (nhds (g x))) :
+∀ ε : ℝ, ε > 0 → ∃ N : ℕ, ∀ m : ℕ, m ≥ N → ∀ n : ℕ, n ≥ N → ∥f m x - f n x∥ < ε :=
+begin
+  sorry,
+end
+
+lemma mean_value_theorem_for_differences
+(f : ℕ → ℝ → ℝ)
+(f' : ℕ → ℝ → ℝ)
+(g : ℝ → ℝ)
+(g' : ℝ → ℝ)
+(x r R : ℝ)
+(hrR : r < R)
+(hf : ∀ (n : ℕ), ∀ (y : ℝ), y ∈ ball x R → has_deriv_at (f n) (f' n y) y)
+(hfg : ∀ (y : ℝ), y ∈ closed_ball x r → tendsto (λ n, f n y) at_top (nhds (g y)))
+(hfg' : tendsto_uniformly_on f' g' at_top (closed_ball x r)) :
+∀ (m n : ℕ) (x' y : ℝ), x' ∈ closed_ball x r → y ∈ closed_ball x r → x' ≠ y →
+    ∃ (z : ℝ), z ∈ closed_ball x r ∧ (x' - y)⁻¹ * ((f m x' - f n x') - (f m y - f n y)) = f' m z - f' n z :=
+begin
+  intros m n y' z' hy' hz' h,
+  let y := min y' z',
+  let z := max y' z',
+  have hy : y ∈ closed_ball x r,
+  {
+    cases le_total y' z' with h h,
+    have : y = y', by simp [h],
+    rw this, exact hy',
+    have : y = z', by simp [h],
+    rw this, exact hz',
+  },
+  have hz : z ∈ closed_ball x r, {
+    cases le_total y' z' with h h,
+    have : z = z', by simp [h],
+    rw this, exact hz',
+    have : z = y', by simp [h],
+    rw this, exact hy',
+  },
+  have hyz : y < z, sorry,
+  have hfc : continuous_on (f m - f n) (set.Icc y z), sorry,
+  have hff' : ∀ (x : ℝ), x ∈ set.Ioo y z → has_deriv_at (f m - f n) (f' m x - f' n x) x, sorry,
+  have mvt := exists_has_deriv_at_eq_slope (f m - f n) (f' m - f' n) hyz hfc hff',
+  rcases mvt with ⟨c, hc, hc'⟩,
+  use c,
+  split,
+  { sorry, },
+  have : (y' - z')⁻¹ * (f m y' - f n y' - (f m z' - f n z')) = (y - z)⁻¹ * (f m y - f n y - (f m z - f n z)),
+  { sorry, },
+  rw this,
+  simp at hc',
+  have : (f m z - f n z - (f m y - f n y)) / (z - y) = (y - z)⁻¹ * (f m y - f n y - (f m z - f n z)),
+  {
+    sorry,
+  },
+  rw ←this,
+  exact hc'.symm,
+end
+
+lemma difference_quotients_converge
+(f : ℕ → ℝ → ℝ)
+(g : ℝ → ℝ)
+(x r : ℝ)
+(hfg : ∀ (y : ℝ), y ∈ closed_ball x r → tendsto (λ n, f n y) at_top (nhds (g y))) :
+∀ y : ℝ, y ∈ closed_ball x r → ∀ z : ℝ, z ∈ closed_ball x r → tendsto (λ n : ℕ, ∥z - y∥⁻¹ * ((f n z) - (f n y))) at_top (nhds (∥z - y∥⁻¹ * ((g z) - (g y)))) :=
+begin
+  intros y hy z hz,
+  apply tendsto.const_mul,
+  exact tendsto.sub (hfg z hz) (hfg y hy),
+end
+
+lemma difference_quotients_converge_uniformly
+(f : ℕ → ℝ → ℝ)
+(f' : ℕ → ℝ → ℝ)
+(g : ℝ → ℝ)
+(g' : ℝ → ℝ)
+(x r R : ℝ)
+(hrR : r < R)
+(hf : ∀ (n : ℕ), ∀ (y : ℝ), y ∈ ball x R → has_deriv_at (f n) (f' n y) y)
+(hfg : ∀ (y : ℝ), y ∈ closed_ball x r → tendsto (λ n, f n y) at_top (nhds (g y)))
+(hfg' : tendsto_uniformly_on f' g' at_top (closed_ball x r)) :
+∀ y : ℝ, y ∈ closed_ball x r → tendsto_uniformly_on (λ n : ℕ, λ z : ℝ, ∥z - y∥⁻¹ * ((f n z) - (f n y))) (λ z : ℝ, ∥z - y∥⁻¹ * ((g z) - (g y))) at_top ((closed_ball x r)) :=
+begin
+  intros y hy,
+  apply uniform_convergence_of_uniform_cauchy,
+  refine difference_quotients_converge _ _ _ _ hfg y hy,
+  intros ε hε,
+
+  have foo := uniform_cauchy_of_uniform_convergence _ _ _ hfg',
+  specialize foo ε hε,
+  cases foo with N hN,
+  use N,
+  intros m hm n hn z hz,
+  rw [←mul_sub, ←norm_inv, norm_mul, norm_norm, ←norm_mul],
+  by_cases hzy : z = y,
+  { simp [hzy, hε.lt], },
+  have hmvt := mean_value_theorem_for_differences f f' g g' x r R hrR hf hfg hfg' m n z y hz hy hzy,
+  rcases hmvt with ⟨ξ, hξ, hξ'⟩,
+
+  have : (f m z - f n z - (f m y - f n y)) = (f m z - f m y - (f n z - f n y)), ring,
+  rw ←this,
+  rw hξ',
+
+  exact hN m hm n hn ξ hξ,
+end
+
+lemma uniform_convergence_of_uniform_convergence_derivatives
+(f : ℕ → ℝ → ℝ)
+(f' : ℕ → ℝ → ℝ)
+(g : ℝ → ℝ)
+(g' : ℝ → ℝ)
+(x r R : ℝ)
+(hrpos : 0 < r)
+(hrR : r < R)
+(hf : ∀ (n : ℕ), ∀ (y : ℝ), y ∈ ball x R → has_deriv_at (f n) (f' n y) y)
+(hfg : ∀ (y : ℝ), y ∈ closed_ball x r → tendsto (λ n, f n y) at_top (nhds (g y)))
+(hfg' : tendsto_uniformly_on f' g' at_top (closed_ball x r)) :
+tendsto_uniformly_on f g at_top (closed_ball x r) :=
+begin
+  refine uniform_convergence_of_uniform_cauchy _ _ _ hfg _,
+  intros ε hε,
+  have hxcb : x ∈ closed_ball x r, { rw mem_closed_ball, simp, exact hrpos.le, },
+  have := cauchy_of_convergence _ _ x (hfg x hxcb),
+  have two_inv_pos : 0 < (2 : ℝ)⁻¹, simp,
+  have ε_over_two_pos : 0 < (2⁻¹ * ε),
+  { exact mul_pos two_inv_pos hε.lt, },
+  specialize this (2⁻¹ * ε) ε_over_two_pos.gt,
+  cases this with N1 hN1,
+
+  have foo := uniform_cauchy_of_uniform_convergence _ _ _ hfg',
+  have : 0 < (2⁻¹ * r⁻¹ * ε), {
+    exact mul_pos (mul_pos (by norm_num) (by simp [hrpos])) hε.lt,
+  },
+  specialize foo (2⁻¹ * r⁻¹ * ε) this.gt,
+  cases foo with N2 hN2,
+
+  let N := max N1 N2,
+  use N,
+  intros m hm n hn y hy,
+
+  have : f m y - f n y = (f m y - f n y) - (f m x - f n x) + (f m x - f n x), ring,
+  rw this,
+  have : ∥f m y - f n y - (f m x - f n x) + (f m x - f n x)∥ ≤ ∥f m y - f n y - (f m x - f n x)∥ + ∥f m x - f n x∥, exact norm_add_le _ _,
+  refine lt_of_le_of_lt this _,
+
+  have : ∥f m y - f n y - (f m x - f n x)∥ = ∥y - x∥ * (∥y - x∥⁻¹ * ∥f m y - f n y - (f m x - f n x)∥), {
+    by_cases hyxx : y = x,
+    { simp [hyxx], },
+    have hxyy : y - x ≠ 0, exact λ H, hyxx (sub_eq_zero.mp H),
+    have hxyy' : ∥y - x∥ ≠ 0, simp [hxyy],
+    exact (mul_inv_cancel_left₀ hxyy' _).symm,
+  },
+  rw this,
+  by_cases h : y = x,
+  { simp only [h, sub_self, norm_zero, mul_zero, zero_add],
+    refine lt_trans (hN1 m (ge_trans hm (le_max_left N1 N2).ge) n (ge_trans hn (le_max_left N1 N2).ge)) _,
+    rw mul_lt_iff_lt_one_left hε.lt,
+    norm_num, },
+
+  rcases mean_value_theorem_for_differences f f' g g' x r R hrR hf hfg hfg' m n y x hy hxcb h with ⟨z, hz, hz'⟩,
+  conv {to_lhs, congr, congr, skip, rw ←norm_inv, rw ←norm_mul, rw hz', },
+  specialize hN2 m (ge_trans hm (by simp)) n (ge_trans hn (by simp)) z hz,
+  have hyx : ∥y - x∥ ≤ r, { rw mem_closed_ball at hy, exact hy, },
+  specialize hN1 m (ge_trans hm (by simp)) n (ge_trans hn (by simp)),
+  simp only at hN1,
+
+  have : ε = (2⁻¹ * ε) + (2⁻¹ * ε), ring,
+  rw this,
+
+  have : ∥y - x∥ * ∥f' m z - f' n z∥ < 2⁻¹ * ε, {
+    sorry,
+  },
+  exact add_lt_add this hN1,
+end
+
 /-! (d/dx) lim_{n → ∞} f_n x = lim_{n → ∞} f'_n x on a closed ball when the f'_n are
 continuous and converge _unifomrly_ to their limit -/
 lemma swap_limit_and_derivative
@@ -46,7 +247,6 @@ lemma swap_limit_and_derivative
 (x r R : ℝ)
 (hrR : r < R)
 (hf : ∀ (n : ℕ), ∀ (y : ℝ), y ∈ ball x R → has_deriv_at (f n) (f' n y) y)
-(hf' : ∀ (n : ℕ), continuous_on (f' n) (closed_ball x r))
 (hfg : ∀ (y : ℝ), y ∈ closed_ball x r → tendsto (λ n, f n y) at_top (nhds (g y)))
 (hfg' : tendsto_uniformly_on f' g' at_top (closed_ball x r)) :
 ∀ y : ℝ, y ∈ ball x r → has_deriv_at g (g' y) y :=
@@ -59,6 +259,11 @@ begin
   intros ε hε,
 
   -- Now some important auxiliary facts such as:
+  have hrpos : 0 < r, {
+    rw mem_ball at hy,
+    calc 0 ≤ dist y x : dist_nonneg ... < r : hy,
+  },
+
   have hball_mem : ∀ z, z ∈ ball x r → z ∈ ball x R,
   { intros z hz,
     rw mem_ball,
@@ -78,10 +283,6 @@ begin
   have hball : is_compact (closed_ball x r),
   exact compact_iff_closed_bounded.mpr ⟨is_closed_ball, bounded_closed_ball⟩,
 
-  -- continuity implies uniform continuity of derivative
-  have hf'uc : ∀ (n : ℕ), uniform_continuous_on (f' n) (closed_ball x r),
-  exact (λ n, hball.uniform_continuous_on_of_continuous (hf' n)),
-
   -- has_deriv_at implies continuity of primal
   have hfc : ∀ (n : ℕ), continuous_on (f n) (closed_ball x r),
   exact λ n z hz, (hf n z (hbig_ball_mem z hz)).continuous_at.continuous_within_at,
@@ -95,23 +296,20 @@ begin
   exact (λ m n y hy, (hf m y hy).sub (hf n y hy)),
 
   -- mean value theorem applied to differences
-  -- have hfmnmvt : ∀ (m n : ℕ) (x' y : ℝ), x' ∈ closed_ball x r → y ∈ closed_ball x r → ∃ (z : ℝ), |(f m x' - f n x') - (f m y - f n y)| =
+  have hfmnmvt := mean_value_theorem_for_differences f f' g g' x r R hrR hf hfg hfg',
 
   -- uniform convergence of the derivatives implies uniform convergence of the primal
-  have hfguc : tendsto_uniformly_on f g at_top (closed_ball x r),
-  { rw tendsto_uniformly_on_iff,
-    sorry, },
+  have hfguc := uniform_convergence_of_uniform_convergence_derivatives f f' g g' x r R hrpos hrR hf hfg hfg', -- tendsto_uniformly_on f g at_top (closed_ball x r),
 
   -- convergence of the primal and uniform convergence of the derivatives implies
   -- uniform convergence of the difference quotients
-  have hdiff : tendsto_uniformly_on (λ n : ℕ, λ z : ℝ, ∥z - y∥⁻¹ * ((f n z) - (f n y))) (λ z : ℝ, ∥z - y∥⁻¹ * ((g z) - (g y))) at_top ((closed_ball x r) \ {y}),
-  { sorry, },
+  have hdiff := difference_quotients_converge_uniformly f f' g g' x r R hrR hf hfg hfg' y hyc,
 
   -- The first (ε / 3) comes from the convergence of the derivatives
-  rw tendsto_uniformly_on_iff at hfg',
   have : 0 < (3 : ℝ)⁻¹, simp, linarith,
   have ε_over_three_pos : 0 < (3⁻¹ * ε),
   { exact mul_pos this hε.lt, },
+  rw tendsto_uniformly_on_iff at hfg',
   specialize hfg' (3⁻¹ * ε) ε_over_three_pos.gt,
   rw eventually_at_top at hfg',
   rcases hfg' with ⟨N1, hN1⟩,
@@ -143,8 +341,15 @@ begin
   -- Start the final manipulation
   use [δ, hδ],
   intros x' hx',
-  have hxc : x' ∈ closed_ball x r, sorry,
-  have hxy : dist x' y < δ', sorry,
+  have hxc : x' ∈ closed_ball x r, {
+    rw mem_closed_ball,
+    apply le_of_lt,
+    have foo : dist x' y < r - dist y x, calc dist x' y < δ : hx' ... ≤ r - dist y x : by simp [δ],
+    have ff : dist x' y + dist y x < r, linarith [foo],
+    have fff : dist x' x ≤ dist x' y + dist y x, exact dist_triangle _ _ _,
+    calc dist x' x ≤ dist x' y + dist y x : fff ... < r : ff,
+  },
+  have hxy : dist x' y < δ', calc dist x' y < δ : hx' ... ≤ δ' : by simp [δ],
   specialize hf hxy,
 
   -- There's a technical issue where we need to rule out the case y = x'
@@ -155,10 +360,8 @@ begin
 
   -- Now our three inequalities come from `hf`, `hN1`, and `hN2`. Specialize
   -- to make this clear
-  have hx'' : x' ∈ closed_ball x r \ {y},
-  { simp [hxc], intros h, exact hy' h.symm, },
   specialize hN1 N (by simp) y hyc,
-  specialize hN2 N (by simp) x' hx'',
+  specialize hN2 N (by simp) x' hxc,
   rw dist_eq_norm at *,
   simp only [algebra.id.smul_eq_mul, sub_zero, norm_mul, norm_inv, norm_norm],
 
