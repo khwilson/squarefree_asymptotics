@@ -19,7 +19,33 @@ have canonical coercions so this should be fine.
 -/
 
 open finset filter measure_theory interval_integral metric
-open_locale big_operators arithmetic_function
+open_locale big_operators arithmetic_function uniformity filter
+
+-- variables {α : Type*} {β : Type*} {ι : Type*} [uniform_space β]
+
+-- def uniform_cauchy_seq_on
+--   (F : ι → α → β) (p : filter ι) (s : set α) :=
+--   ∀ u : set (β × β), u ∈ 𝓤 β → (∀ᶠ (n : ι × ι) in (p ×ᶠ p), ∀ (x : α), x ∈ s → (F n.fst x, F n.snd x) ∈ u)
+
+-- lemma uniform_cauchy_seq_on_iff [complete_space β] [nonempty β] (F : ι → α → β) (p : filter ι) (s : set α) :
+--   uniform_cauchy_seq_on F p s ↔ tendsto_uniformly_on F (λ x : α, lim p (λ n : ι, F n x)) p s :=
+-- begin
+
+-- end
+
+
+lemma bah
+(F : ℕ → ℝ → ℝ)
+(f : ℝ → ℝ)
+(G : ℕ → ℝ)
+(g : ℝ)
+(s : set ℝ)
+(hf : tendsto_uniformly_on F f at_top s)
+(hg : tendsto G at_top (nhds g)) :
+tendsto_uniformly_on (λ n : ℕ, λ x : ℝ, F n x + G n) (λ x : ℝ, f x + g) at_top s :=
+begin
+  sorry,
+end
 
 lemma mul_cancel_inv_left₀ {a b : ℝ} (ha : a ≠ 0) : a⁻¹ * (a * b) = b :=
  begin
@@ -34,7 +60,12 @@ begin
   exact add_le_add (norm_add_le _ _) rfl.le,
 end
 
-lemma norm_sub_comm {a b : ℝ} : ∥a - b∥ = ∥b - a∥ := sorry
+lemma norm_sub_comm {a b : ℝ} : ∥a - b∥ = ∥b - a∥ :=
+begin
+  have : b - a = (-1) * (a - b), ring,
+  rw [this, norm_mul],
+  simp,
+end
 
 /-- You could rearrange this lemma to actually choose g for the user, but I don't
 understand that syntax so would welcome help! -/
@@ -46,28 +77,97 @@ lemma uniform_convergence_of_uniform_cauchy
 (hu : ∀ ε : ℝ, ε > 0 → ∃ N : ℕ, ∀ m : ℕ, m ≥ N → ∀ n : ℕ, n ≥ N → ∀ x : ℝ, x ∈ s → ∥f m x - f n x∥ < ε) :
 tendsto_uniformly_on f g at_top s :=
 begin
-  sorry,
+  rw tendsto_uniformly_on_iff,
+  intros ε hε,
+  have half_ε : (2⁻¹ * ε) > 0, simp [hε.lt],
+  rw eventually_at_top,
+
+  specialize hu (2⁻¹ * ε) half_ε,
+  cases hu with N hN,
+
+  use N,
+  intros n hn x hx,
+
+  specialize hfg x hx,
+  rw metric.tendsto_nhds at hfg,
+  specialize hfg (2⁻¹ * ε) half_ε,
+  rw eventually_at_top at hfg,
+  cases hfg with N2 hN2,
+
+  let m := max N N2,
+
+  specialize hN n hn m (by simp) x hx,
+  specialize hN2 m (by simp),
+  rw dist_eq_norm,
+  rw dist_eq_norm at hN2,
+  rw norm_sub_comm,
+  have : f n x - g x = (f n x - f m x) + (f m x - g x), ring,
+  rw this,
+  have : ∥(f n x - f m x) + (f m x - g x)∥ ≤ ∥f n x - f m x∥ + ∥f m x - g x∥, exact norm_add_le _ _,
+  refine lt_of_le_of_lt this _,
+
+  have : ∥f n x - f m x∥ + ∥f m x - g x∥ < (2⁻¹ * ε) + (2⁻¹ * ε),
+  exact add_lt_add hN hN2,
+  exact lt_of_lt_of_eq this (by ring),
 end
 
 lemma uniform_cauchy_of_uniform_convergence
 (f : ℕ → ℝ → ℝ)
 (g : ℝ → ℝ)
 (s : set ℝ)
--- (hfg : ∀ x : ℝ, x ∈ s → tendsto (λ n, f n x) at_top (nhds (g x)))
 (hu : tendsto_uniformly_on f g at_top s) :
-∀ ε : ℝ, ε > 0 → ∃ N : ℕ, ∀ m : ℕ, m ≥ N → ∀ n : ℕ, n ≥ N → ∀ x : ℝ, x ∈ s → ∥f m x - f n x∥ < ε) :=
+∀ ε : ℝ, ε > 0 → ∃ N : ℕ, ∀ m : ℕ, m ≥ N → ∀ n : ℕ, n ≥ N → ∀ x : ℝ, x ∈ s → ∥f m x - f n x∥ < ε :=
 begin
-  sorry,
+  intros ε hε,
+  have half_ε : (2⁻¹ * ε) > 0, simp [hε.lt],
+  rw tendsto_uniformly_on_iff at hu,
+  specialize hu (2⁻¹ * ε) half_ε,
+  rw eventually_at_top at hu,
+  cases hu with N hN,
+  use N,
+  intros m hm n hn x hx,
+
+  have hmm := hN m hm x hx,
+  have hnn := hN n hn x hx,
+  rw dist_eq_norm at *,
+
+  have : f m x - f n x = f m x - g x + (g x - f n x), ring,
+  rw this,
+  refine lt_of_le_of_lt (norm_add_le _ _) _,
+  rw norm_sub_comm at hmm,
+  refine lt_of_lt_of_eq (add_lt_add hmm hnn) _,
+  ring,
 end
 
-lemma cauchy_of_convergence
-(f : ℕ → ℝ → ℝ)
-(g : ℝ → ℝ)
-(x : ℝ)
-(hu : tendsto (λ n, f n x) at_top (nhds (g x))) :
-∀ ε : ℝ, ε > 0 → ∃ N : ℕ, ∀ m : ℕ, m ≥ N → ∀ n : ℕ, n ≥ N → ∥f m x - f n x∥ < ε :=
+lemma dumb { a b c : ℝ } : (-1) * a / (b - c) = a / (c - b) :=
 begin
-  sorry,
+  ring_nf,
+  rw mul_comm,
+  rw ←mul_neg,
+  rw neg_inv,
+  rw neg_sub,
+  rw mul_comm,
+end
+
+lemma fdfdfd { a b : ℝ} : min a b = a ∨ min a b = b :=
+begin
+  exact min_choice a b
+end
+
+lemma min_eq_max_iff_eq {a b : ℝ} : min a b = max a b ↔ a = b := begin
+  refine ⟨(λ heq, _), (λ h, by simp [h])⟩,
+  {
+    cases min_choice a b,
+    rw h at heq,
+    rw min_eq_left_iff at h,
+    have := max_eq_left_iff.mp heq.symm,
+    exact ge_antisymm this h,
+
+    rw h at heq,
+    rw min_eq_right_iff at h,
+    have := max_eq_right_iff.mp heq.symm,
+    exact le_antisymm this h,
+  },
 end
 
 lemma mean_value_theorem_for_differences
@@ -101,7 +201,7 @@ begin
     have : z = y', by simp [h],
     rw this, exact hy',
   },
-  have hyz : y < z, sorry,
+  have hyz : y < z, { exact lt_of_le_of_ne min_le_max (λ hb, h (min_eq_max_iff_eq.mp hb)), },
   have hfc : continuous_on (f m - f n) (set.Icc y z), sorry,
   have hff' : ∀ (x : ℝ), x ∈ set.Ioo y z → has_deriv_at (f m - f n) (f' m x - f' n x) x, sorry,
   have mvt := exists_has_deriv_at_eq_slope (f m - f n) (f' m - f' n) hyz hfc hff',
@@ -115,7 +215,11 @@ begin
   simp at hc',
   have : (f m z - f n z - (f m y - f n y)) / (z - y) = (y - z)⁻¹ * (f m y - f n y - (f m z - f n z)),
   {
-    sorry,
+    have : f m z - f n z - (f m y - f n y) = (-1) * (f m y - f n y - (f m z - f n z)), ring,
+    rw this,
+    have : (-1) * (f m y - f n y - (f m z - f n z)) / (z - y) = (f m y - f n y - (f m z - f n z)) / (y - z), exact dumb,
+    rw this,
+    ring,
   },
   rw ←this,
   exact hc'.symm,
@@ -145,14 +249,15 @@ lemma difference_quotients_converge_uniformly
 (hfg' : tendsto_uniformly_on f' g' at_top (closed_ball x r)) :
 ∀ y : ℝ, y ∈ closed_ball x r → tendsto_uniformly_on (λ n : ℕ, λ z : ℝ, ∥z - y∥⁻¹ * ((f n z) - (f n y))) (λ z : ℝ, ∥z - y∥⁻¹ * ((g z) - (g y))) at_top ((closed_ball x r)) :=
 begin
+  -- Proof strategy: Rewrite the Cauchy sequence of difference quotients as
+  -- a difference quotient. Then apply the mean value theorem and the uniform
+  -- convergence of the derivatives
   intros y hy,
   apply uniform_convergence_of_uniform_cauchy,
   refine difference_quotients_converge _ _ _ _ hfg y hy,
   intros ε hε,
 
-  have foo := uniform_cauchy_of_uniform_convergence _ _ _ hfg',
-  specialize foo ε hε,
-  cases foo with N hN,
+  cases uniform_cauchy_of_uniform_convergence _ _ _ hfg' ε hε with N hN,
   use N,
   intros m hm n hn z hz,
   rw [←mul_sub, ←norm_inv, norm_mul, norm_norm, ←norm_mul],
@@ -162,9 +267,7 @@ begin
   rcases hmvt with ⟨ξ, hξ, hξ'⟩,
 
   have : (f m z - f n z - (f m y - f n y)) = (f m z - f m y - (f n z - f n y)), ring,
-  rw ←this,
-  rw hξ',
-
+  rw [←this, hξ'],
   exact hN m hm n hn ξ hξ,
 end
 
@@ -184,7 +287,7 @@ begin
   refine uniform_convergence_of_uniform_cauchy _ _ _ hfg _,
   intros ε hε,
   have hxcb : x ∈ closed_ball x r, { rw mem_closed_ball, simp, exact hrpos.le, },
-  have := cauchy_of_convergence _ _ x (hfg x hxcb),
+  have := metric.cauchy_seq_iff.mp (hfg x hxcb).cauchy_seq,
   have two_inv_pos : 0 < (2 : ℝ)⁻¹, simp,
   have ε_over_two_pos : 0 < (2⁻¹ * ε),
   { exact mul_pos two_inv_pos hε.lt, },
@@ -226,7 +329,7 @@ begin
   specialize hN2 m (ge_trans hm (by simp)) n (ge_trans hn (by simp)) z hz,
   have hyx : ∥y - x∥ ≤ r, { rw mem_closed_ball at hy, exact hy, },
   specialize hN1 m (ge_trans hm (by simp)) n (ge_trans hn (by simp)),
-  simp only at hN1,
+  rw dist_eq_norm at hN1,
 
   have : ε = (2⁻¹ * ε) + (2⁻¹ * ε), ring,
   rw this,
@@ -256,7 +359,6 @@ begin
   intros y hy,
   rw has_deriv_at_iff_tendsto,
   rw tendsto_nhds_nhds,
-  intros ε hε,
 
   -- Now some important auxiliary facts such as:
   have hrpos : 0 < r, {
@@ -306,6 +408,7 @@ begin
   have hdiff := difference_quotients_converge_uniformly f f' g g' x r R hrR hf hfg hfg' y hyc,
 
   -- The first (ε / 3) comes from the convergence of the derivatives
+  intros ε hε,
   have : 0 < (3 : ℝ)⁻¹, simp, linarith,
   have ε_over_three_pos : 0 < (3⁻¹ * ε),
   { exact mul_pos this hε.lt, },
